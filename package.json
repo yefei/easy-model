@@ -1,7 +1,7 @@
 {
-  "name": "@feiye/easy-model",
-  "description": "MySQL easy model, easy query.",
-  "version": "1.0.1",
+  "name": "mysql-easy-type",
+  "description": "MySQL easy model, easy query. easy typing!",
+  "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei",

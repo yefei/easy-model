@@ -1,6 +1,6 @@
 # Easy Model
 
-MySQL easy model, easy query.
+MySQL easy model, easy query. easy typing!
 
 ## install
 
@@ -12,7 +12,7 @@ npm i @feiye/easy-model
 
 ```js
 const mysql = require('mysql');
-const { model, Query } = require('@feiye/easy-model');
+const { model, Query } = require('mysql-easy-type');
 
 const conn = mysql.createConnection({
   host: '127.0.0.1',
@@ -71,5 +71,5 @@ query.transaction(() => {
 ```
 
 ## Related projects
-[mysql-easy-query](https://github.com/yefei/mysql-easy-query)
-[sql-easy-builder](https://github.com/yefei/sql-easy-builder)
+[mysql-easy-query](https://www.npmjs.com/package/mysql-easy-query)
+[sql-easy-builder](https://www.npmjs.com/package/sql-easy-builder)
