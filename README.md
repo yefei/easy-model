@@ -1,5 +1,7 @@
 # Easy Model
 
+MySQL easy model, easy query.
+
 ## install
 
 ```
@@ -63,7 +65,7 @@ const deletedCount = await user.delete();
 // transaction
 query.transaction(() => {
   const user = await User(query).findByPk(1);
-  await user.delete();s
+  await user.delete();
 });
 
 ```
@@ -71,4 +73,3 @@ query.transaction(() => {
 ## Related projects
 [mysql-easy-query](https://github.com/yefei/mysql-easy-query)
 [sql-easy-builder](https://github.com/yefei/sql-easy-builder)
-s
