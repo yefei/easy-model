@@ -5,7 +5,7 @@ MySQL easy model, easy query. easy typing!
 ## install
 
 ```
-npm i @feiye/easy-model
+npm i mysql-easy-type
 ```
 
 ## example
@@ -68,6 +68,17 @@ query.transaction(() => {
   await user.delete();
 });
 
+```
+
+## auto generate
+
+edit you package.json
+```json
+{
+  "scripts": {
+    "dbgen": "mysqleasytype",
+  }
+}
 ```
 
 ## Related projects
