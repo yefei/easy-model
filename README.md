@@ -3,14 +3,14 @@
 ## install
 
 ```
-npm i easy-model
+npm i @feiye/easy-model
 ```
 
 ## example
 
 ```js
 const mysql = require('mysql');
-const { model, Query } = require('easy-model');
+const { model, Query } = require('@feiye/easy-model');
 
 const conn = mysql.createConnection({
   host: '127.0.0.1',

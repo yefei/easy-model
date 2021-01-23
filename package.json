@@ -1,5 +1,5 @@
 {
-  "name": "easy-model",
+  "name": "@feiye/easy-model",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
@@ -8,6 +8,12 @@
   "scripts": {
     "test": "mocha"
   },
+  "keywords": [
+    "mysql",
+    "query",
+    "model",
+    "database"
+  ],
   "dependencies": {
     "mysql-easy-query": "^0.4.11"
   },
