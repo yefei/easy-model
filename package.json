@@ -6,7 +6,11 @@
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei",
   "license": "MIT",
+  "bin": {
+    "mysqleasytype": "./bin/type-generate"
+  },
   "scripts": {
+    "gen": "node ./bin/type-generate",
     "test": "mocha"
   },
   "keywords": [
@@ -20,6 +24,7 @@
   },
   "devDependencies": {
     "assert": "^2.0.0",
+    "dotenv": "^8.2.0",
     "eslint": "^7.18.0",
     "mocha": "^8.2.1"
   }
