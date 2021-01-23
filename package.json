@@ -1,0 +1,19 @@
+{
+  "name": "easy-model",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/yefei/easy-model",
+  "author": "YeFei",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "mysql-easy-query": "^0.4.11"
+  },
+  "devDependencies": {
+    "assert": "^2.0.0",
+    "eslint": "^7.18.0",
+    "mocha": "^8.2.1"
+  }
+}
