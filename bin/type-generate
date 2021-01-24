@@ -15,9 +15,9 @@ if (!dbname) {
   process.exit();
 }
 
-const tsFilename = process.env.OUTPUT_TYPES_FILE || 'types/models.d.ts';
+const tsFilename = process.env.OUTPUT_TYPES_FILE || 'models.d.ts';
 const tsFile = path.resolve(process.cwd(), tsFilename);
-const modelsFilename = process.env.OUTPUT_MODELS_FILE || 'app/models.js';
+const modelsFilename = process.env.OUTPUT_MODELS_FILE || 'models.js';
 const modelsFile = path.resolve(process.cwd(), modelsFilename);
 let tsRelative = path.relative(modelsFile, tsFile).replace(/\\/g, '/').substring(3);
 if (!tsRelative.startsWith('../')) tsRelative = `./${tsRelative}`;
@@ -92,16 +92,16 @@ async function main() {
     out.push(`}`);
     out.push(``);
     out.push(`export declare class ${className}Model extends Model<${className}> {}`);
-    out.push(`export type ${className}Type = (query: Query) => ${className}Model;`);
+    out.push(`export type ${className}Query = (query: Query) => ${className}Model;`);
     out.push(``);
 
     // js
-    modelJs.push(`/** @type { import('${tsRelative}').${className}Type } */`);
-    modelJs.push(`exports.${className} = model('${tableName}');`);
+    modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
+    modelJs.push(`exports.${className}Query = model('${tableName}');`);
     modelJs.push(``);
   }
 
-  console.log(`write type file: ${tsFile}`);
+  console.log(`write types file: ${tsFile}`);
   fs.writeFileSync(tsFile, out.join('\n'));
 
   console.log(`write models file: ${modelsFile}`);
@@ -116,8 +116,8 @@ function help() {
   console.log('MYSQL_USER=root');
   console.log('MYSQL_PASSWORD=');
   console.log('MYSQL_DATABASE=');
-  console.log('OUTPUT_TYPES_FILE=types/models.d.ts');
-  console.log('OUTPUT_MODELS_FILE=app/models.js');
+  console.log('OUTPUT_TYPES_FILE=models.d.ts');
+  console.log('OUTPUT_MODELS_FILE=models.js');
 }
 
 main().catch(e => {
