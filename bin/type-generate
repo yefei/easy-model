@@ -92,7 +92,7 @@ async function main() {
     out.push(`}`);
     out.push(``);
     out.push(`export declare class ${className}Model extends Model<${className}> {}`);
-    out.push(`export type ${className}Query = (query: Query) => ${className}Model;`);
+    out.push(`export declare function ${className}Query(query: Query): ${className}Model;`);
     out.push(``);
 
     // js
