@@ -1,5 +1,6 @@
 'use strict';
 
+require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql');
 const { Query, model } = require('..');
@@ -18,9 +19,10 @@ INSERT INTO `user`(`name`, `age`) VALUES ('yefei', 30);
 */
 
 const pool = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'root',
-  database: 'test',
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+  user: process.env.MYSQL_USER || 'root',
+  database: process.env.MYSQL_DATABASE || 'test',
+  password: process.env.MYSQL_PASSWORD,
 });
 
 let conn;
@@ -101,5 +103,13 @@ describe('Model', function() {
     const user = await User(query).findByPk(id);
     const c = await user.delete();
     eq(c, 1);
+  });
+
+  it('options.order', async function() {
+    const query = new Query(conn);
+    const UserWithOrder = model('user', {
+      order: ['-id'],
+    });
+    const users = await UserWithOrder(query).find().all();
   });
 });

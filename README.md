@@ -81,6 +81,23 @@ edit you package.json
 }
 ```
 
+create .env file:
+```
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=
+MYSQL_DATABASE=
+OUTPUT_TYPES_FILE=models.d.ts
+OUTPUT_MODELS_FILE=models.js
+```
+
+run:
+```
+npm i dotenv --save-dev
+npm run dbgen
+```
+
 ## Related projects
 [mysql-easy-query](https://www.npmjs.com/package/mysql-easy-query)
 [sql-easy-builder](https://www.npmjs.com/package/sql-easy-builder)
