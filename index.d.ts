@@ -26,6 +26,15 @@ export declare class Instance {
 export declare class Finder<T extends Instance> {
   constructor(model: Model, where?: Where | { [key: string]: any });
   limit(count: number, offset?: number): Finder<T>;
+
+  /**
+   * order('id') => id ASC
+   * order('-id') => id DESC
+   * order('-join_at', 'id') => join_at DESC, id ASC
+   * @param columns 
+   */
+  order(...columns: string): Finder<T>;
+
   all(): Promise<T[]>;
   get(): Promise<T>;
   count(): Promise<number>;
