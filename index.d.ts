@@ -9,7 +9,10 @@ export interface ModelOptions {
   name: string;
 
   /** 表名，默认取自 name */
-  table: string;
+  table?: string;
+
+  /** 默认排序，不设置则不排序 */
+  order?: string[];
 }
 
 /**
