@@ -78,11 +78,13 @@ async function main() {
     const className = nameCase(tableName);
     console.log('table:', tableName);
     const columns = await query.query('SHOW FULL COLUMNS FROM ??', [tableName]);
+    let pk;
     out.push(`/**`);
     out.push(` * table: ${tableName}`);
     out.push(` */`);
     out.push(`export declare class ${className} extends Instance {`);
     for (const c of columns) {
+      if (!pk && c.Key === 'PRI') pk = c.Field;
       out.push(`  /**`);
       c.Comment && out.push(`   * ${c.Comment}`);
       out.push(`   * ${c.Type} ${c.Extra}`);
@@ -97,7 +99,7 @@ async function main() {
 
     // js
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
-    modelJs.push(`exports.${className}Query = model('${tableName}');`);
+    modelJs.push(`exports.${className}Query = model('${tableName}', { table: '${tableName}', pk: '${pk}' });`);
     modelJs.push(``);
   }
 
