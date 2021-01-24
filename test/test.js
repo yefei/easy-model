@@ -52,6 +52,7 @@ function eq(a, b) {
 
 describe('Model', function() {
   const User = model('user');
+  const Profile = model('profile');
   let id;
 
   it('create', async function() {
@@ -111,5 +112,10 @@ describe('Model', function() {
       order: ['-id'],
     });
     const users = await UserWithOrder(query).find().all();
+  });
+
+  it('join', async function() {
+    const query = new Query(conn);
+    const users = await User(query).find().join(Profile).all();
   });
 });

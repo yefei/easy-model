@@ -15,6 +15,17 @@ export interface ModelOptions {
   order?: string[];
 }
 
+export interface JoinOptions {
+  /** 使用的外键，默认取 {parent.name}_id */
+  fk?: string;
+
+  /** join 模式，默认 inner */
+  type?: 'inner' | 'left' | 'right';
+
+  /** 输出别名，默认 {this.name} */
+  as?: string;
+}
+
 /**
  * 数据实例
  */
@@ -37,6 +48,8 @@ export declare class Finder<T extends Instance> {
    * @param columns 
    */
   order(...columns: string): Finder<T>;
+
+  join<J extends Instance>(modelQuery: Model<J>, options?: JoinOptions): Finder<T>;
 
   all(): Promise<T[]>;
   get(): Promise<T>;

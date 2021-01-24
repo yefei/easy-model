@@ -68,6 +68,9 @@ query.transaction(() => {
   await user.delete();
 });
 
+// join
+const Profile = model('profile');
+const user = await User(query).find().join(Profile).all();
 ```
 
 ## auto generate
