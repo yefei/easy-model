@@ -28,6 +28,9 @@ export interface JoinOptions {
   /** 输出别名，默认 {this.name} */
   as?: string;
 
+  /** join 结果是否转为列表 */
+  asList?: boolean;
+
   /** 覆盖默认 ON 查询 */
   on?: Where | { [key: string]: any };
 }

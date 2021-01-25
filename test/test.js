@@ -15,7 +15,21 @@ CREATE TABLE `user` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-INSERT INTO `user`(`name`, `age`) VALUES ('yefei', 30);
+CREATE TABLE `profile` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `edu` varchar(255) DEFAULT NULL,
+  `work` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE `message` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `content` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk1` (`user_id`),
+  CONSTRAINT `fk1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 */
 
 const pool = mysql.createPool({
@@ -53,6 +67,7 @@ function eq(a, b) {
 describe('Model', function() {
   const User = model('user');
   const Profile = model('profile');
+  const Message = model('message');
   let id;
 
   it('create', async function() {
@@ -121,9 +136,24 @@ describe('Model', function() {
       ref: 'user_id',
       as: 'p',
     }).get();
-    assert.ok(typeof user.user.save === 'function');
+    assert.ok(typeof user.save === 'function');
     assert.ok(typeof user.p.save === 'function');
-    const Message = model('message');
-    const messages = await Message(query).find().join(User).get();
+  });
+
+  it('join(toList)', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().join(Message, {
+      fk: 'id',
+      ref: 'user_id',
+      asList: true,
+    })
+    .join(Profile, {
+      fk: 'id',
+      ref: 'user_id',
+    })
+    .get();
+    assert.ok(typeof user.save === 'function');
+    assert.ok(Array.isArray(user.message));
+    assert.ok(typeof user.profile.save === 'function');
   });
 });
