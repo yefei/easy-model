@@ -20,10 +20,13 @@ export interface JoinOptions {
   fk?: string;
 
   /** join 模式，默认 inner */
-  type?: 'inner' | 'left' | 'right';
+  type?: 'INNER' | 'LEFT' | 'RIGHT';
 
   /** 输出别名，默认 {this.name} */
   as?: string;
+
+  /** 覆盖默认 ON 查询 */
+  on?: Where | { [key: string]: any };
 }
 
 /**

@@ -116,6 +116,11 @@ describe('Model', function() {
 
   it('join', async function() {
     const query = new Query(conn);
-    const users = await User(query).find().join(Profile).all();
+    const user = await User(query).find().join(Profile, {
+      fk: 'id',
+      as: 'p',
+    }).get();
+    assert.ok(typeof user.user.save === 'function');
+    assert.ok(typeof user.p.save === 'function');
   });
 });
