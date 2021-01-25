@@ -16,8 +16,11 @@ export interface ModelOptions {
 }
 
 export interface JoinOptions {
-  /** 使用的外键，默认取 {parent.name}_id */
+  /** 使用的外键，默认取 {joinModel.name}_{joinModel.pk} */
   fk?: string;
+
+  /** 引用键，默认取 {model.pk} */
+  ref?: string;
 
   /** join 模式，默认 inner */
   type?: 'INNER' | 'LEFT' | 'RIGHT';

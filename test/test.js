@@ -118,9 +118,12 @@ describe('Model', function() {
     const query = new Query(conn);
     const user = await User(query).find().join(Profile, {
       fk: 'id',
+      ref: 'user_id',
       as: 'p',
     }).get();
     assert.ok(typeof user.user.save === 'function');
     assert.ok(typeof user.p.save === 'function');
+    const Message = model('message');
+    const messages = await Message(query).find().join(User).get();
   });
 });
