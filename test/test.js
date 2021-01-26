@@ -156,4 +156,23 @@ describe('Model', function() {
     assert.ok(Array.isArray(user.message));
     assert.ok(typeof user.profile.save === 'function');
   });
+
+  it('select(...columns)', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().get('name');
+    console.log(user);
+    assert.ok(typeof user.save === 'function');
+    try {
+      user.name = "666";
+      await user.save();
+      assert(false, "error");
+    } catch (e) {}
+  });
+
+  it('save()', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().get('name', 'id');
+    user.name = "222";
+    await user.save();
+  });
 });

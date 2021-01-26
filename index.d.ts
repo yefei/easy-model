@@ -39,7 +39,14 @@ export interface JoinOptions {
  * 数据实例
  */
 export declare class Instance {
+  /**
+   * 保存本条数据
+   */
   save(): Promise<void>;
+
+  /**
+   * 删除本条数据
+   */
   delete(): Promise<void>;
 }
 
@@ -48,9 +55,16 @@ export declare class Instance {
  */
 export declare class Finder<T extends Instance> {
   constructor(model: Model, where?: Where | { [key: string]: any });
+
+  /**
+   * 限制查询条数
+   * @param count 条数
+   * @param offset 位置，默认 0
+   */
   limit(count: number, offset?: number): Finder<T>;
 
   /**
+   * 排序，如果 join 表需要指定表名称
    * order('id') => id ASC
    * order('-id') => id DESC
    * order('-join_at', 'id') => join_at DESC, id ASC
@@ -58,13 +72,42 @@ export declare class Finder<T extends Instance> {
    */
   order(...columns: string): Finder<T>;
 
+  /**
+   * JOIN 其他表
+   * @param modelQuery 需要 join 的表查询
+   * @param options join 选项
+   */
   join<J extends Instance>(modelQuery: Model<J>, options?: JoinOptions): Finder<T>;
 
-  all(): Promise<T[]>;
-  get(): Promise<T>;
+  /**
+   * @param columns 需要检出的字段，默认全部
+   */
+  all(...columns?: (string | { [key: string]: any })): Promise<T[]>;
+
+  /**
+   * @param columns 需要检出的字段，默认全部
+   */
+  get(...columns?: (string | { [key: string]: any })): Promise<T>;
+
+  /**
+   * 返回查询条数
+   */
   count(): Promise<number>;
+
+  /**
+   * 条件查询是否存在
+   */
   exists(): Promise<boolean>;
+
+  /**
+   * 更新数据字段并保存
+   * @param columns
+   */
   update(columns: { [key: string]: any }): Promise<number>;
+
+  /**
+   * 删除数据
+   */
   delete(): Promise<number>;
 }
 
