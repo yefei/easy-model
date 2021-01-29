@@ -1,12 +1,12 @@
 import { Query, Where } from 'mysql-easy-query';
-export { Query, PoolQuery, PoolClusterQuery, Where, Raw, Op } from 'mysql-easy-query';
+export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op } from 'mysql-easy-query';
 
 export interface ModelOptions {
   /** 主键名 */
-  pk: string = 'id';
+  pk?: string;
 
   /** 模型名，默认表名，关联关系中不可重复 */
-  name: string;
+  name?: string;
 
   /** 表名，默认取自 name */
   table?: string;

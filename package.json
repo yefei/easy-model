@@ -4,7 +4,7 @@
   "version": "1.4.2",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
-  "author": "YeFei",
+  "author": "YeFei <316606233@qq.com>",
   "license": "MIT",
   "bin": {
     "mysqleasytype": "./bin/type-generate"
@@ -17,10 +17,12 @@
     "mysql",
     "query",
     "model",
+    "types",
+    "generate",
     "database"
   ],
   "dependencies": {
-    "mysql-easy-query": "^0.4.13"
+    "mysql-easy-query": "^0.4.14"
   },
   "devDependencies": {
     "assert": "^2.0.0",
