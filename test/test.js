@@ -27,8 +27,7 @@ CREATE TABLE `message` (
   `user_id` int(11) NOT NULL,
   `content` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `fk1` (`user_id`),
-  CONSTRAINT `fk1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+  KEY `fk1` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 */
 
@@ -68,12 +67,16 @@ describe('Model', function() {
   const User = model('user');
   const Profile = model('profile');
   const Message = model('message');
-  let id;
+  let id, profileId;
 
   it('create', async function() {
     const query = new Query(conn);
     id = await User(query).create({ name: 'yf', age: 11 });
     assert.ok(typeof id === 'number');
+    profileId = await Profile(query).create({ user_id: id, edu: 'edu', work: 'work' });
+    for(let i = 0; i < 10; i++) {
+      await Message(query).create({ user_id: id, content: `message:${i}` });
+    }
   });
 
   it('findByPk', async function() {
@@ -105,20 +108,6 @@ describe('Model', function() {
     const ins = await User(query).find({ id }).update({ name: 'yefei', age: 11 });
     eq(ins, 1);
     eq((await User(query).findByPk(id)).name, 'yefei');
-  });
-
-  it('delete', async function() {
-    const query = new Query(conn);
-    const ins = await User(query).find({ id }).delete();
-    eq(ins, 1);
-  });
-
-  it('instance.delete', async function() {
-    const query = new Query(conn);
-    const id = await User(query).create({ name: 'instance.delete', age: 11 });
-    const user = await User(query).findByPk(id);
-    const c = await user.delete();
-    eq(c, 1);
   });
 
   it('options.order', async function() {
@@ -174,5 +163,19 @@ describe('Model', function() {
     const user = await User(query).find().get('name', 'id');
     user.name = "222";
     await user.save();
+  });
+
+  it('delete', async function() {
+    const query = new Query(conn);
+    const ins = await User(query).find({ id }).delete();
+    eq(ins, 1);
+  });
+
+  it('instance.delete', async function() {
+    const query = new Query(conn);
+    const id = await User(query).create({ name: 'instance.delete', age: 11 });
+    const user = await User(query).findByPk(id);
+    const c = await user.delete();
+    eq(c, 1);
   });
 });
