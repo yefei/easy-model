@@ -146,10 +146,34 @@ describe('Model', function() {
     assert.ok(typeof user.profile.save === 'function');
   });
 
+  it('join(as: path->to)', async function() {
+    const query = new Query(conn);
+    const profile = await Profile(query).find({ profile: { user_id: id } })
+    .join(User)
+    .join(Message, {
+      fk: 'user_id',
+      ref: 'user_id',
+      as: 'user->messages',
+      asList: true,
+    })
+    .get({
+      profile: ['id', 'user_id'],
+      user: ['id'],
+      'user->messages': ['id', 'content', 'user_id'],
+    });
+    assert.ok(profile.user_id === id);
+    assert.ok(profile.user.id === id);
+    for (const m of profile.user.messages) {
+      assert.ok(m.user_id === id);
+    }
+    const m = profile.user.messages.pop();
+    m.content = 'join(as).test';
+    await m.save();
+  });
+
   it('select(...columns)', async function() {
     const query = new Query(conn);
     const user = await User(query).find().get('name');
-    console.log(user);
     assert.ok(typeof user.save === 'function');
     try {
       user.name = "666";

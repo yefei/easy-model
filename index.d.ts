@@ -16,6 +16,9 @@ export interface ModelOptions {
 }
 
 export interface JoinOptions {
+  /** 来源, 默认取 {joinModel.name} */
+  from?: string;
+
   /** 使用的外键，默认取 {joinModel.name}_{joinModel.pk} */
   fk?: string;
 
@@ -25,7 +28,7 @@ export interface JoinOptions {
   /** join 模式，默认 inner */
   type?: 'INNER' | 'LEFT' | 'RIGHT';
 
-  /** 输出别名，默认 {this.name} */
+  /** 输出别名，默认 {this.name}， 可以使用 -> 命名空间 */
   as?: string;
 
   /** join 结果是否转为列表 */
