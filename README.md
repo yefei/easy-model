@@ -140,6 +140,10 @@ const user = await User(query).find().join(Message, {
   }
 }
 */
+
+// many
+const query = new PoolQuery(pool);
+const userList = await User(query).find().many(Message, { parallel: true }).all();
 ```
 
 ## auto generate
