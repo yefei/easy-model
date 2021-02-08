@@ -28,7 +28,7 @@ export interface JoinOptions {
   /** join 模式，默认 inner */
   type?: 'INNER' | 'LEFT' | 'RIGHT';
 
-  /** 输出别名，默认 {this.name}， 可以使用 -> 命名空间 */
+  /** 输出别名，默认 {joinModel.name}， 可以使用 -> 命名空间 */
   as?: string;
 
   /** join 结果是否转为列表 */
@@ -36,6 +36,23 @@ export interface JoinOptions {
 
   /** 覆盖默认 ON 查询 */
   on?: Where | { [key: string]: any };
+}
+
+export interface ManyOptions {
+  /** many 表外键 */
+  fk?: string;
+
+  /** 来源表引用键，默认为主键, 在JOIN结果中可使用.命名空间，例如 user.id */
+  ref?: string;
+
+  /** 输出别名, 可以使用 -> 命名空间 */
+  as?: string;
+
+  /** 需要的结果列 */
+  columns?: string[] | object;
+
+  /** 是否使用并行查询 */
+  parallel?: boolean;
 }
 
 /**
@@ -58,6 +75,37 @@ export declare class Instance {
  */
 export declare class Finder<T extends Instance> {
   constructor(model: Model, where?: Where | { [key: string]: any });
+
+  /**
+   * 克隆为新实例
+   */
+  clone(): Finder<T>;
+
+  /**
+   * 设置查询条件
+   * @param where 
+   */
+  where(where: Where | { [key: string]: any }): Finder<T>;
+
+  /**
+   * 追加 AND 查询
+   * @param where 
+   */
+  whereAnd(where: Where | { [key: string]: any }): Finder<T>;
+
+  /**
+   * 追加 OR 查询
+   * @param where 
+   */
+  whereOr(where: Where | { [key: string]: any }): Finder<T>;
+
+  /**
+   * 在取得主表结果后查询其他关联表多条结果
+   * 用于一对多或多对多场景
+   * @param manyModel 
+   * @param options 
+   */
+  many(manyModel: Model | Finder, options?: ManyOptions): Finder<T>;
 
   /**
    * 限制查询条数
