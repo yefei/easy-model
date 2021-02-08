@@ -3,7 +3,7 @@
 require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql');
-const { Query, model } = require('..');
+const { Query, PoolQuery, model } = require('..');
 
 /*
 CREATE DATABASE `test`;
@@ -169,6 +169,16 @@ describe('Model', function() {
     const m = profile.user.messages.pop();
     m.content = 'join(as).test';
     await m.save();
+  });
+
+  it('many(parallel)', async function() {
+    const query = new PoolQuery(pool);
+    const userList = await User(query).find().many(Message, { parallel: true }).all();
+    for (const user of userList) {
+      for (const m of user.message) {
+        assert.ok(m.user_id === user.id);
+      }
+    }
   });
 
   it('select(...columns)', async function() {
