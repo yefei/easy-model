@@ -212,4 +212,11 @@ describe('Model', function() {
     const c = await user.delete();
     eq(c, 1);
   });
+
+  it('finder.clone', async function() {
+    const query = new Query(conn);
+    const userFinder = User(query).find({ id: 1 });
+    userFinder.clone().whereAnd({ id: 2 });
+    await userFinder.get();
+  });
 });
