@@ -2,7 +2,7 @@
 
 require('dotenv').config();
 const assert = require('assert');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const { Query, PoolQuery, model } = require('..');
 
 /*

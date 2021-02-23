@@ -5,7 +5,7 @@ MySQL easy model, easy query. easy typing!
 ## install
 
 ```
-npm i mysql-easy-type
+npm i mysql-easy-type mysql2
 ```
 
 ## example
@@ -41,7 +41,7 @@ CREATE TABLE `message` (
 ```
 
 ```js
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const { model, Query } = require('mysql-easy-type');
 
 const conn = mysql.createConnection({
@@ -170,7 +170,7 @@ OUTPUT_MODELS_FILE=models.js
 
 run:
 ```
-npm i dotenv --save-dev
+npm i dotenv mysql2 --save-dev
 npm run dbgen
 ```
 
