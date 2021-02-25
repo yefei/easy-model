@@ -200,6 +200,12 @@ export declare class Model<T extends Instance> {
   create(columns: { [key: string]: any }): Promise<number>;
 
   /**
+   * 创建一条数据并返回数据
+   * @param columns
+   */
+  createAndGet(columns: { [key: string]: any }): Promise<T>;
+
+  /**
    * 保存实例数据
    * @param instance 
    */

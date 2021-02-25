@@ -219,4 +219,10 @@ describe('Model', function() {
     userFinder.clone().whereAnd({ id: 2 });
     await userFinder.get();
   });
+
+  it('createAndGet', async function() {
+    const query = new Query(conn);
+    const ins = await User(query).createAndGet({ name: 'yf', age: 11 });
+    eq({ name: ins.name, age: ins.age }, { name: 'yf', age: 11 });
+  });
 });
