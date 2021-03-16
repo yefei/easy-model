@@ -69,6 +69,9 @@ async function main() {
   const modelJs = [
     "'use strict';",
     ...remark,
+    '/**',
+    " * @typedef {import('mysql-easy-type').Query} Query",
+    ' */',
     '',
     "const { model } = require('mysql-easy-type');",
     '',
@@ -107,22 +110,33 @@ async function main() {
     // queries
     const prop = `${className.charAt(0).toLowerCase()}${className.slice(1)}`;
     queriesTs.push(`  ${prop}: ${className}Model;`);
-    queriesJs.push(`    ${prop}: exports.${className}Query(query),`);
+    queriesJs.push(`  get ${prop}() { return exports.${className}Query(this._query); }`);
   }
 
   // queries
-  out.push(`export declare function queries(query: Query): {`);
+  out.push(`export declare class Queries {`);
+  out.push(`  constructor(query: Query);`);
   out.push(...queriesTs);
-  out.push(`};`);
+  out.push(`}`);
+  out.push(``);
+  out.push(`export declare function queries(query: Query): Queries;`);
+  out.push(``);
+
+  modelJs.push(`class Queries {`);
+  modelJs.push(`  /**`);
+  modelJs.push(`   * @param {Query} query`);
+  modelJs.push(`   */`);
+  modelJs.push(`  constructor(query) { this._query = query; }`);
+  modelJs.push(...queriesJs);
+  modelJs.push(`}`);
+  modelJs.push(`exports.Queries = Queries;`);
+  modelJs.push(``);
 
   modelJs.push(`/**`);
-  modelJs.push(` * @param {import('mysql-easy-type').Query} query`);
+  modelJs.push(` * @param {Query} query`);
   modelJs.push(` */`);
-  modelJs.push(`exports.queries = function(query) {`);
-  modelJs.push(`  return {`);
-  modelJs.push(...queriesJs);
-  modelJs.push(`  };`);
-  modelJs.push(`};`);
+  modelJs.push(`exports.queries = function(query) { return new Queries(query); };`);
+  modelJs.push(``);
 
   console.log(`write types file: ${tsFile}`);
   fs.writeFileSync(tsFile, out.join('\n'));
