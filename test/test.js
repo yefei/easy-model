@@ -236,4 +236,16 @@ describe('Model', function() {
     const ins = await User(query).createAndGet({ name: 'yf', age: 11 });
     eq({ name: ins.name, age: ins.age }, { name: 'yf', age: 11 });
   });
+
+  it('value', async function() {
+    const query = new Query(conn);
+    const age = await User(query).find({ id: 1 }).value('age', 0);
+    eq(age, 100);
+  });
+
+  it('value.join', async function() {
+    const query = new Query(conn);
+    const age = await Message(query).find({ 'user.id': 1 }).join(User).value('user.age');
+    eq(age, 100);
+  });
 });

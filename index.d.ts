@@ -141,6 +141,13 @@ export declare class Finder<T extends Instance> {
   get(...columns?: (string | { [key: string]: any })): Promise<T>;
 
   /**
+   * 取得一条数据中的一个值
+   * @param column 字段名
+   * @param defaultValue 默认值
+   */
+  value<V>(column: string, defaultValue?: V): Promise<V>;
+
+  /**
    * 返回查询条数
    */
   count(): Promise<number>;
