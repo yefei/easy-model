@@ -73,6 +73,8 @@ async function main() {
     "const { model } = require('mysql-easy-type');",
     '',
   ];
+  const queriesTs = [];
+  const queriesJs = [];
   for (const t of tables) {
     const tableName = t[`Tables_in_${dbname}`];
     const className = nameCase(tableName);
@@ -101,7 +103,26 @@ async function main() {
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
     modelJs.push(`exports.${className}Query = model('${tableName}', { table: '${tableName}', pk: '${pk}' });`);
     modelJs.push(``);
+
+    // queries
+    const prop = `${className.charAt(0).toLowerCase()}${className.slice(1)}`;
+    queriesTs.push(`  ${prop}: ${className}Model;`);
+    queriesJs.push(`    ${prop}: exports.${className}Query(query),`);
   }
+
+  // queries
+  out.push(`export declare function queries(query: Query): {`);
+  out.push(...queriesTs);
+  out.push(`};`);
+
+  modelJs.push(`/**`);
+  modelJs.push(` * @param {import('mysql-easy-type').Query} query`);
+  modelJs.push(` */`);
+  modelJs.push(`exports.queries = function(query) {`);
+  modelJs.push(`  return {`);
+  modelJs.push(...queriesJs);
+  modelJs.push(`  };`);
+  modelJs.push(`};`);
 
   console.log(`write types file: ${tsFile}`);
   fs.writeFileSync(tsFile, out.join('\n'));
