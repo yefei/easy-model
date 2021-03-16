@@ -129,6 +129,17 @@ describe('Model', function() {
     assert.ok(typeof user.p.save === 'function');
   });
 
+  it('join(Finder)', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().join(Profile(query), {
+      fk: 'id',
+      ref: 'user_id',
+      as: 'p',
+    }).get();
+    assert.ok(typeof user.save === 'function');
+    assert.ok(typeof user.p.save === 'function');
+  });
+
   it('join(toList)', async function() {
     const query = new Query(conn);
     const user = await User(query).find().join(Message, {
