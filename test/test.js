@@ -260,4 +260,10 @@ describe('Model', function() {
     const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: { $gt: 0 } } }).get();
     eq(m.user.id, 1);
   });
+
+  it('join.get empty list', async function() {
+    const query = new Query(conn);
+    const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: 99999 } }).get();
+    eq(m, null);
+  });
 });
