@@ -35,7 +35,10 @@ export interface JoinOptions {
   asList?: boolean;
 
   /** 覆盖默认 ON 查询 */
-  on?: Where | { [key: string]: any };
+  on?: { [key: string]: any };
+
+  /** 追加 ON 查询 */
+  where?: { [key: string]: any };
 }
 
 export interface ManyOptions {

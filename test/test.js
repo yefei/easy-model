@@ -254,4 +254,10 @@ describe('Model', function() {
     const exists = await Message(query).find({ 'user.id': 1 }).join(User).exists();
     eq(exists, true);
   });
+
+  it('join.where', async function() {
+    const query = new Query(conn);
+    const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: { $gt: 0 } } }).get();
+    eq(m.user.id, 1);
+  });
 });
