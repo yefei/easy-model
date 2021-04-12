@@ -6,6 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2');
 const { Query } = require('mysql-easy-query');
+try {
+  require('dotenv').config();
+// eslint-disable-next-line no-empty
+} catch (err) {}
 
 const dbname = process.env.MYSQL_DATABASE;
 if (!dbname) {
