@@ -77,7 +77,7 @@ export declare class Instance {
  * 查找器
  */
 export declare class Finder<T extends Instance> {
-  constructor(model: Model, where?: Where | { [key: string]: any });
+  constructor(model: Model<T>, where?: Where | { [key: string]: any });
 
   /**
    * 克隆为新实例
@@ -108,7 +108,7 @@ export declare class Finder<T extends Instance> {
    * @param manyModel 
    * @param options 
    */
-  many(manyModel: Model | Finder, options?: ManyOptions): Finder<T>;
+  many(manyModel: Model<T> | Finder<T>, options?: ManyOptions): Finder<T>;
 
   /**
    * 限制查询条数
@@ -124,7 +124,7 @@ export declare class Finder<T extends Instance> {
    * order('-join_at', 'id') => join_at DESC, id ASC
    * @param columns 
    */
-  order(...columns: string): Finder<T>;
+  order(...columns: string[]): Finder<T>;
 
   /**
    * JOIN 其他表
@@ -134,14 +134,26 @@ export declare class Finder<T extends Instance> {
   join<J extends Instance>(modelQuery: Model<J>, options?: JoinOptions): Finder<T>;
 
   /**
-   * @param columns 需要检出的字段，默认全部
+   * GROUP BY
+   * @param columns
    */
-  all(...columns?: (string | { [key: string]: any })): Promise<T[]>;
+  group(...columns: string[]): Finder<T>;
+
+  /**
+   * GROUP HAVING
+   * @param condition
+   */
+  having(condition: Where | { [key: string]: any }): Finder<T>;
 
   /**
    * @param columns 需要检出的字段，默认全部
    */
-  get(...columns?: (string | { [key: string]: any })): Promise<T>;
+  all(...columns: (string | { [key: string]: any })[]): Promise<T[]>;
+
+  /**
+   * @param columns 需要检出的字段，默认全部
+   */
+  get(...columns: (string | { [key: string]: any })[]): Promise<T>;
 
   /**
    * 取得一条数据中的一个值

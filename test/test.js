@@ -3,6 +3,7 @@
 require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql2');
+const { Builder } = require('sql-easy-builder');
 const { Query, PoolQuery, model } = require('..');
 
 /*
@@ -265,5 +266,20 @@ describe('Model', function() {
     const query = new Query(conn);
     const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: 99999 } }).get();
     eq(m, null);
+  });
+
+  it('group', async function() {
+    const query = new Query(conn);
+    const m = await User(query).find().join(Message, {
+      fk: 'id',
+      ref: 'user_id',
+    })
+    .group('user.id')
+    .having({ messageCount: { $gt: 2 } })
+    .all({ user: ['*'], messageCount: new Builder().func('COUNT', 'message.id') });
+    for (const i of m) {
+      eq(typeof i.messageCount, 'number');
+      eq(typeof i.id, 'number');
+    }
   });
 });
