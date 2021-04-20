@@ -1,5 +1,5 @@
 import { Query, Where } from 'mysql-easy-query';
-export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op } from 'mysql-easy-query';
+export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } from 'mysql-easy-query';
 
 export interface ModelOptions {
   /** 主键名 */

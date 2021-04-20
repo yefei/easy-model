@@ -4,7 +4,7 @@ require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql2');
 const { Builder } = require('sql-easy-builder');
-const { Query, PoolQuery, model } = require('..');
+const { Query, PoolQuery, model, AB } = require('..');
 
 /*
 CREATE DATABASE `test`;
@@ -276,7 +276,7 @@ describe('Model', function() {
     })
     .group('user.id')
     .having({ messageCount: { $gt: 2 } })
-    .all({ user: ['*'], messageCount: new Builder().func('COUNT', 'message.id') });
+    .all({ user: ['*'], messageCount: AB.count('message.id') });
     for (const i of m) {
       eq(typeof i.messageCount, 'number');
       eq(typeof i.id, 'number');
