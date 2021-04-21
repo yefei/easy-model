@@ -1,7 +1,7 @@
 {
   "name": "mysql-easy-type",
   "description": "MySQL easy model, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei <316606233@qq.com>",
