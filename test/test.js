@@ -296,4 +296,14 @@ describe('Model', function() {
     const ins = await NonAutoPk(query).create({ id: maxId + 1, name: 'test' });
     eq(maxId + 1, ins);
   });
+
+  it('left left of null', async function() {
+    const query = new Query(conn);
+    const data = await Message(query)
+      .find({ message: { id:  1 } })
+      .join(User, { type: 'LEFT', where: { name: 'not exists' } })
+      .join(Profile, { from: 'user', type: 'LEFT', as: 'user->profile', ref: 'user_id', fk: 'id' })
+      .get();
+    eq(typeof data.user, 'undefined');
+  });
 });
