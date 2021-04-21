@@ -30,6 +30,11 @@ CREATE TABLE `message` (
   PRIMARY KEY (`id`),
   KEY `fk1` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE `nonautopk` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 */
 
 const pool = mysql.createPool({
@@ -281,5 +286,14 @@ describe('Model', function() {
       eq(typeof i.messageCount, 'number');
       eq(typeof i.id, 'number');
     }
+  });
+
+  it('NonAutoPk', async function() {
+    const query = new Query(conn);
+    const NonAutoPk = model('nonautopk');
+    const maxId = await NonAutoPk(query).find().value(AB.max('id'), 0);
+    eq(typeof maxId, 'number');
+    const ins = await NonAutoPk(query).create({ id: maxId + 1, name: 'test' });
+    eq(maxId + 1, ins);
   });
 });
