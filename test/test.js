@@ -3,7 +3,6 @@
 require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql2');
-const { Builder } = require('sql-easy-builder');
 const { Query, PoolQuery, model, AB } = require('..');
 
 /*
@@ -89,6 +88,12 @@ describe('Model', function() {
     const query = new Query(conn);
     const ins = await User(query).findByPk(id);
     eq({ id: ins.id, name: ins.name, age: ins.age }, { id, name: 'yf', age: 11 });
+  });
+
+  it('findByPk(...columns)', async function() {
+    const query = new Query(conn);
+    const ins = await User(query).findByPk(id, 'name');
+    eq(ins.toJSON(), { name: 'yf' });
   });
 
   it('find', async function() {
@@ -305,5 +310,15 @@ describe('Model', function() {
       .join(Profile, { from: 'user', type: 'LEFT', as: 'user->profile', ref: 'user_id', fk: 'id' })
       .get();
     eq(typeof data.user, 'undefined');
+  });
+
+  it('left left of not null', async function() {
+    const query = new Query(conn);
+    const data = await Message(query)
+      .find({ message: { id:  1 } })
+      .join(User, { type: 'LEFT', where: { name: 'not exists' } })
+      .join(Profile, { type: 'LEFT', as: 'user->profile', ref: 'user_id', fk: 'id' })
+      .get();
+    eq(typeof data.user.profile, 'object');
   });
 });
