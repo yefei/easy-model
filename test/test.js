@@ -10,7 +10,7 @@ CREATE DATABASE `test`;
 CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `age` int(11) NOT NULL DEFAULT '0',
+  `birthday` date DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -69,7 +69,18 @@ function eq(a, b) {
 }
 
 describe('Model', function() {
-  const User = model('user');
+  const User = model('user', {
+    virtuals: {
+      age: {
+        get() {
+          return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
+        },
+        set(value) {
+          this.birthday = `${(new Date().getFullYear()) - value}-1-1`;
+        },
+      }
+    },
+  });
   const Profile = model('profile');
   const Message = model('message');
   let id, profileId;
@@ -250,31 +261,38 @@ describe('Model', function() {
 
   it('value', async function() {
     const query = new Query(conn);
-    const age = await User(query).find({ id: 1 }).value('age', 0);
-    eq(age, 100);
+    const id = await User(query).create({ name: 'yfvalue' });
+    const name = await User(query).find({ id }).value('name', null);
+    eq(name, 'yfvalue');
   });
 
   it('value.join', async function() {
     const query = new Query(conn);
-    const age = await Message(query).find({ 'user.id': 1 }).join(User).value('user.age');
-    eq(age, 100);
+    const id = await User(query).create({ name: 'yfvalue2' });
+    await Message(query).create({ user_id: id, content: 'test' });
+    const name = await Message(query).find({ 'user.id': id }).join(User).value('user.name');
+    eq(name, 'yfvalue2');
   });
 
   it('join.exists', async function() {
     const query = new Query(conn);
-    const exists = await Message(query).find({ 'user.id': 1 }).join(User).exists();
+    const id = await User(query).create({ name: 'join.exists' });
+    await Message(query).create({ user_id: id, content: 'test' });
+    const exists = await Message(query).find({ 'user.id': id }).join(User).exists();
     eq(exists, true);
   });
 
   it('join.where', async function() {
     const query = new Query(conn);
-    const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: { $gt: 0 } } }).get();
-    eq(m.user.id, 1);
+    const id = await User(query).create({ name: 'join.where' });
+    await Message(query).create({ user_id: id, content: 'test' });
+    const m = await Message(query).find({ 'user.id': id }).join(User, { where: { 'user.id': { $gt: 0 } } }).get();
+    eq(m.user.id, id);
   });
 
   it('join.get empty list', async function() {
     const query = new Query(conn);
-    const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { age: 99999 } }).get();
+    const m = await Message(query).find({ 'user.id': 1 }).join(User, { where: { 'user.id': 99999 } }).get();
     eq(m, null);
   });
 

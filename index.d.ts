@@ -1,6 +1,11 @@
 import { Query, Where } from 'mysql-easy-query';
 export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } from 'mysql-easy-query';
 
+export interface VirtualField {
+  get(): any;
+  set(value: any): void;
+}
+
 export interface ModelOptions {
   /** 主键名 */
   pk?: string;
@@ -13,6 +18,9 @@ export interface ModelOptions {
 
   /** 默认排序，不设置则不排序 */
   order?: string[];
+
+  /** 虚拟字段 */
+  virtuals?: { [ key: string]: VirtualField };
 }
 
 export interface JoinOptions {

@@ -17,6 +17,7 @@ if (!dbname) {
   process.exit();
 }
 
+const modelsOptionsDir = path.resolve(process.cwd(), process.env.INPUT_OPTIONS_DIR);
 const tsFilename = process.env.OUTPUT_TYPES_FILE || 'models.d.ts';
 const tsFile = path.resolve(process.cwd(), tsFilename);
 const modelsFilename = process.env.OUTPUT_MODELS_FILE || 'models.js';
@@ -104,9 +105,19 @@ async function main() {
     out.push(`export declare function ${className}Query(query: Query): ${className}Model;`);
     out.push(``);
 
+    // options
+    let options = '';
+    const optionFilename = path.join(modelsOptionsDir, `${tableName}.js`);
+    if (fs.existsSync(optionFilename)) {
+      let optionRelative = path.relative(modelsFile, optionFilename).replace(/\\/g, '/').substring(3);
+      if (!optionRelative.startsWith('../')) optionRelative = `./${optionRelative}`;
+      optionRelative = optionRelative.slice(0, -3); // remove .js
+      options = `, ...require('${optionRelative}')`;
+    }
+
     // js
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
-    modelJs.push(`exports.${className}Query = model('${tableName}', { table: '${tableName}', pk: '${pk}' });`);
+    modelJs.push(`exports.${className}Query = model('${tableName}', { table: '${tableName}', pk: '${pk}'${options} });`);
     modelJs.push(``);
 
     // queries
@@ -155,6 +166,7 @@ function help() {
   console.log('MYSQL_USER=root');
   console.log('MYSQL_PASSWORD=');
   console.log('MYSQL_DATABASE=');
+  console.log('INPUT_OPTIONS_DIR=models_options');
   console.log('OUTPUT_TYPES_FILE=models.d.ts');
   console.log('OUTPUT_MODELS_FILE=models.js');
 }
