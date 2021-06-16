@@ -17,7 +17,7 @@ if (!dbname) {
   process.exit();
 }
 
-const modelsOptionsDir = path.resolve(process.cwd(), process.env.INPUT_OPTIONS_DIR);
+const modelsOptionsDir = path.resolve(process.cwd(), process.env.INPUT_OPTIONS_DIR || 'models_options');
 const tsFilename = process.env.OUTPUT_TYPES_FILE || 'models.d.ts';
 const tsFile = path.resolve(process.cwd(), tsFilename);
 const modelsFilename = process.env.OUTPUT_MODELS_FILE || 'models.js';
