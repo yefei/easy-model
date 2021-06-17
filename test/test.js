@@ -69,6 +69,8 @@ function eq(a, b) {
 }
 
 describe('Model', function() {
+  const Profile = model('profile');
+  const Message = model('message');
   const User = model('user', {
     virtuals: {
       age: {
@@ -80,9 +82,13 @@ describe('Model', function() {
         },
       }
     },
+    join: {
+      profile: { model: Profile, fk: 'id', ref: 'user_id' },
+    },
+    many: {
+      messageList: { model: Message },
+    },
   });
-  const Profile = model('profile');
-  const Message = model('message');
   let id, profileId;
 
   it('create', async function() {
@@ -151,6 +157,13 @@ describe('Model', function() {
     assert.ok(typeof user.p.save === 'function');
   });
 
+  it('join("define")', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().join('profile').get();
+    assert.ok(typeof user.save === 'function');
+    assert.ok(typeof user.profile.save === 'function');
+  });
+
   it('join(Finder)', async function() {
     const query = new Query(conn);
     const user = await User(query).find().join(Profile(query), {
@@ -209,6 +222,16 @@ describe('Model', function() {
     const userList = await User(query).find().many(Message, { parallel: true }).all();
     for (const user of userList) {
       for (const m of user.message) {
+        assert.ok(m.user_id === user.id);
+      }
+    }
+  });
+
+  it('many("define")', async function() {
+    const query = new PoolQuery(pool);
+    const userList = await User(query).find().many('messageList', { parallel: true }).all();
+    for (const user of userList) {
+      for (const m of user.messageList) {
         assert.ok(m.user_id === user.id);
       }
     }

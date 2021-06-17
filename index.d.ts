@@ -21,6 +21,12 @@ export interface ModelOptions {
 
   /** 虚拟字段 */
   virtuals?: { [ key: string]: VirtualField };
+
+  /** 预定义 join 配置项 */
+  join?: { [ as: string]: JoinOptions };
+
+  /** 预定义 many 配置项 */
+  many?: { [ as: string]: ManyOptions };
 }
 
 export interface JoinOptions {
