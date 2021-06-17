@@ -110,7 +110,7 @@ describe('Model', function() {
   it('findByPk(...columns)', async function() {
     const query = new Query(conn);
     const ins = await User(query).findByPk(id, 'name');
-    eq(ins.toJSON(), { name: 'yf' });
+    eq(JSON.stringify(ins), '{"name":"yf"}');
   });
 
   it('find', async function() {
