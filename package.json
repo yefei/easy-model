@@ -11,7 +11,7 @@
   },
   "scripts": {
     "gen": "node ./bin/type-generate",
-    "test": "mocha"
+    "test": "npm run gen && mocha"
   },
   "keywords": [
     "mysql",

@@ -17,6 +17,7 @@ if (!dbname) {
   process.exit();
 }
 
+const requireName = process.env.EASY_TYPE_REQUIRE_NAME || 'mysql-easy-type';
 const modelsOptionsDir = path.resolve(process.cwd(), process.env.INPUT_OPTIONS_DIR || 'models_options');
 const tsFilename = process.env.OUTPUT_TYPES_FILE || 'models.d.ts';
 const tsFile = path.resolve(process.cwd(), tsFilename);
@@ -52,6 +53,16 @@ function nameCase(name) {
   return name.split('_').map(c => c[0].toUpperCase() + c.substring(1)).join('');
 }
 
+/**
+ * @param {string} filename
+ */
+function checkFileDir(filename) {
+  const dir = path.dirname(filename);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+  }
+}
+
 async function main() {
   console.log('get tables...');
   const tables = await query.query('SHOW TABLES');
@@ -66,19 +77,20 @@ async function main() {
   const out = [
     ...remark,
     '',
-    "import { Instance, Model, Query } from 'mysql-easy-type';",
+    `import { Instance, Model, Query } from '${requireName}';`,
     '',
   ];
   const modelJs = [
     "'use strict';",
     ...remark,
     '/**',
-    " * @typedef {import('mysql-easy-type').Query} Query",
+    ` * @typedef {import('${requireName}').Query} Query`,
     ' */',
     '',
-    "const { model } = require('mysql-easy-type');",
+    `const { Model } = require('${requireName}');`,
     '',
   ];
+  const optionsJs = [];
   const queriesTs = [];
   const queriesJs = [];
   for (const t of tables) {
@@ -90,7 +102,7 @@ async function main() {
     out.push(`/**`);
     out.push(` * table: ${tableName}`);
     out.push(` */`);
-    out.push(`export declare class ${className} extends Instance {`);
+    out.push(`export declare class ${className}Instance extends Instance {`);
     for (const c of columns) {
       if (!pk && c.Key === 'PRI') pk = c.Field;
       out.push(`  /**`);
@@ -101,29 +113,31 @@ async function main() {
     }
     out.push(`}`);
     out.push(``);
-    out.push(`export declare class ${className}Model extends Model<${className}> {}`);
-    out.push(`export declare function ${className}Query(query: Query): ${className}Model;`);
+    out.push(`export declare class ${className}Model extends Model<${className}Instance> {}`);
+    out.push(`export declare function ${className}(query: Query): ${className}Model;`);
+    out.push(`export declare function ${className}Query(query: Query): ${className}Model; // alias`);
     out.push(``);
 
     // options
-    let options = '';
     const optionFilename = path.join(modelsOptionsDir, `${tableName}.js`);
     if (fs.existsSync(optionFilename)) {
       let optionRelative = path.relative(modelsFile, optionFilename).replace(/\\/g, '/').substring(3);
       if (!optionRelative.startsWith('../')) optionRelative = `./${optionRelative}`;
       optionRelative = optionRelative.slice(0, -3); // remove .js
-      options = `, ...require('${optionRelative}')`;
+      optionsJs.push(`Object.assign(__${className}_option, require('${optionRelative}'));`);
     }
 
     // js
+    modelJs.push(`const __${className}_option = { name: '${tableName}', table: '${tableName}', pk: '${pk}' };`);
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
-    modelJs.push(`exports.${className}Query = model('${tableName}', { table: '${tableName}', pk: '${pk}'${options} });`);
+    modelJs.push(`exports.${className} = query => new Model(__${className}_option, query);`);
+    modelJs.push(`exports.${className}Query = exports.${className}; // alias`);
     modelJs.push(``);
 
     // queries
     const prop = `${className.charAt(0).toLowerCase()}${className.slice(1)}`;
     queriesTs.push(`  ${prop}: ${className}Model;`);
-    queriesJs.push(`  get ${prop}() { return exports.${className}Query(this._query); }`);
+    queriesJs.push(`  get ${prop}() { return exports.${className}(this._query); }`);
   }
 
   // queries
@@ -151,10 +165,18 @@ async function main() {
   modelJs.push(`exports.queries = function(query) { return new Queries(query); };`);
   modelJs.push(``);
 
+  if (optionsJs.length) {
+    modelJs.push(`/* options update */`);
+    modelJs.push(...optionsJs);
+    modelJs.push(``);
+  }
+
   console.log(`write types file: ${tsFile}`);
+  checkFileDir(tsFile);
   fs.writeFileSync(tsFile, out.join('\n'));
 
   console.log(`write models file: ${modelsFile}`);
+  checkFileDir(modelsFile);
   fs.writeFileSync(modelsFile, modelJs.join('\n'));
 }
 

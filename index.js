@@ -18,6 +18,7 @@ function model(name, options) {
 }
 
 module.exports = {
+  Model,
   model,
   Query,
   PoolQuery,

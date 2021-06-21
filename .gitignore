@@ -10,3 +10,4 @@ yarn.lock
 apidoc/
 .github/
 .env
+test/_dist/

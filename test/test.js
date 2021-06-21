@@ -4,6 +4,7 @@ require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql2');
 const { Query, PoolQuery, model, AB } = require('..');
+const { User, Message, Profile } = require('./_dist/models');
 
 /*
 CREATE DATABASE `test`;
@@ -69,26 +70,6 @@ function eq(a, b) {
 }
 
 describe('Model', function() {
-  const Profile = model('profile');
-  const Message = model('message');
-  const User = model('user', {
-    virtuals: {
-      age: {
-        get() {
-          return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
-        },
-        set(value) {
-          this.birthday = `${(new Date().getFullYear()) - value}-1-1`;
-        },
-      }
-    },
-    join: {
-      profile: { model: Profile, fk: 'id', ref: 'user_id' },
-    },
-    many: {
-      messageList: { model: Message },
-    },
-  });
   let id, profileId;
 
   it('create', async function() {
