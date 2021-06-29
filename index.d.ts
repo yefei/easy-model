@@ -55,6 +55,10 @@ export interface JoinOptions {
   where?: { [key: string]: any };
 }
 
+export interface DefinedJoinOptions extends JoinOptions {
+  model: Model;
+}
+
 export interface ManyOptions {
   /** many 表外键 */
   fk?: string;
@@ -122,7 +126,7 @@ export declare class Finder<T extends Instance> {
    * @param manyModel 
    * @param options 
    */
-  many(manyModel: Model<T> | Finder<T>, options?: ManyOptions): Finder<T>;
+  many(manyModel: Model<T> | Finder<T> | string, options?: ManyOptions): Finder<T>;
 
   /**
    * 限制查询条数
@@ -142,10 +146,10 @@ export declare class Finder<T extends Instance> {
 
   /**
    * JOIN 其他表
-   * @param modelQuery 需要 join 的表查询
+   * @param modelQuery 需要 join 的表查询，如果传入字符串则使用预定义 join，预定义 join 支持级连 a->b->c
    * @param options join 选项
    */
-  join<J extends Instance>(modelQuery: Model<J>, options?: JoinOptions): Finder<T>;
+  join<J extends Instance>(modelQuery: Model<J> | string, options?: JoinOptions): Finder<T>;
 
   /**
    * GROUP BY

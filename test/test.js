@@ -198,6 +198,40 @@ describe('Model', function() {
     await m.save();
   });
 
+  it('join("path->to")', async function() {
+    const query = new Query(conn);
+    const profile = await Profile(query).find({ profile: { user_id: id } })
+    .join('user')
+    .join('user->messages')
+    .get({
+      profile: ['id', 'user_id'],
+      user: ['id'],
+      'user->messages': ['id', 'content', 'user_id'],
+    });
+    assert.ok(profile.user_id === id);
+    assert.ok(profile.user.id === id);
+    for (const m of profile.user.messages) {
+      assert.ok(m.user_id === id);
+    }
+  });
+
+  it('join("as->to")', async function() {
+    const query = new Query(conn);
+    const profile = await Profile(query).find({ profile: { user_id: id } })
+    .join(User, { as: 'u' })
+    .join('u->messages', { where: { content: { $like: '%test%' } } })
+    .get({
+      profile: ['id', 'user_id'],
+      u: ['id'],
+      'u->messages': ['id', 'content', 'user_id'],
+    });
+    assert.ok(profile.user_id === id);
+    assert.ok(profile.u.id === id);
+    for (const m of profile.u.messages) {
+      assert.ok(m.user_id === id);
+    }
+  });
+
   it('many(parallel)', async function() {
     const query = new PoolQuery(pool);
     const userList = await User(query).find().many(Message, { parallel: true }).all();
