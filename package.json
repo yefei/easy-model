@@ -22,7 +22,8 @@
     "database"
   ],
   "dependencies": {
-    "mysql-easy-query": "^1.2.1"
+    "mysql-easy-query": "^1.3.0",
+    "sql-easy-builder": "^1.7.0"
   },
   "devDependencies": {
     "assert": "^2.0.0",

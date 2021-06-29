@@ -106,6 +106,20 @@ describe('Model', function() {
     assert.ok(typeof ins === 'number');
   });
 
+  it('finder.count()', async function() {
+    const query = new Query(conn);
+    const ins = await User(query).find().count();
+    assert.ok(typeof ins === 'number');
+  });
+
+  it('finder.count(AB)', async function() {
+    const query = new Query(conn);
+    let ins = await User(query).find().count('id');
+    assert.ok(typeof ins === 'number');
+    ins = await User(query).find().count(AB.SQL`DISTINCT {id}`);
+    assert.ok(typeof ins === 'number');
+  });
+
   it('exists', async function() {
     const query = new Query(conn);
     eq(await User(query).exists({ id }), true);

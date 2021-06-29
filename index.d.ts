@@ -1,4 +1,5 @@
 import { Query, Where } from 'mysql-easy-query';
+import { AttrBuilder } from 'sql-easy-builder';
 export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } from 'mysql-easy-query';
 
 export interface VirtualField {
@@ -182,8 +183,9 @@ export declare class Finder<T extends Instance> {
 
   /**
    * 返回查询条数
+   * @param column 条数列，默认 *
    */
-  count(): Promise<number>;
+  count(column?: string | Raw | AttrBuilder): Promise<number>;
 
   /**
    * 条件查询是否存在
@@ -223,8 +225,9 @@ export declare class Model<T extends Instance> {
   /**
    * 查询条数
    * @param where 
+   * @param column 条数列，默认 *
    */
-  count(where?: Where): Promise<number>;
+  count(where?: Where, column?: string | Raw | AttrBuilder): Promise<number>;
 
   /**
    * 通过条件查询数据是否存在
