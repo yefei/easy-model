@@ -115,6 +115,7 @@ async function main() {
     out.push(``);
     out.push(`export declare class ${className}Model extends Model<${className}Instance> {}`);
     out.push(`export declare function ${className}(query: Query): ${className}Model;`);
+    out.push(`/** @deprecated 请使用 {${className}} */`);
     out.push(`export declare function ${className}Query(query: Query): ${className}Model; // alias`);
     out.push(``);
 
@@ -131,6 +132,7 @@ async function main() {
     modelJs.push(`const __${className}_option = { name: '${tableName}', table: '${tableName}', pk: '${pk}' };`);
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
     modelJs.push(`exports.${className} = query => new Model(__${className}_option, query);`);
+    modelJs.push(`/** @deprecated 请使用 {${className}} */`);
     modelJs.push(`exports.${className}Query = exports.${className}; // alias`);
     modelJs.push(``);
 
