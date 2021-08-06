@@ -120,6 +120,12 @@ describe('Model', function() {
     assert.ok(typeof ins === 'number');
   });
 
+  it('finder.count(GROUP NULL)', async function() {
+    const query = new Query(conn);
+    const ins = await Message(query).find({ content: 'not exists' }).group('user_id').count();
+    assert.ok(typeof ins === 'number');
+  });
+
   it('exists', async function() {
     const query = new Query(conn);
     eq(await User(query).exists({ id }), true);
