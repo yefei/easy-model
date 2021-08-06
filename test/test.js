@@ -120,12 +120,6 @@ describe('Model', function() {
     assert.ok(typeof ins === 'number');
   });
 
-  it('finder.count(GROUP NULL)', async function() {
-    const query = new Query(conn);
-    const ins = await Message(query).find({ content: 'not exists' }).group('user_id').count();
-    assert.ok(typeof ins === 'number');
-  });
-
   it('exists', async function() {
     const query = new Query(conn);
     eq(await User(query).exists({ id }), true);
@@ -366,6 +360,17 @@ describe('Model', function() {
     for (const i of m) {
       eq(typeof i.messageCount, 'number');
       eq(typeof i.id, 'number');
+    }
+  });
+
+  it('group(AB)', async function() {
+    const query = new Query(conn);
+    const m = await Message(query).find()
+    .group('user_id')
+    .all('user_id', { messageCount: AB.count('user_id') });
+    for (const i of m) {
+      eq(typeof i.messageCount, 'number');
+      eq(typeof i.user_id, 'number');
     }
   });
 
