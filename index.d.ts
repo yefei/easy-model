@@ -84,12 +84,18 @@ export declare class Instance {
   /**
    * 保存本条数据
    */
-  save(): Promise<void>;
+  save(): Promise<number>;
+
+  /**
+   * 更新字段并保存
+   * @param columns 
+   */
+  update(columns: { [column: string]: any }): Promise<number>;
 
   /**
    * 删除本条数据
    */
-  delete(): Promise<void>;
+  delete(): Promise<number>;
 }
 
 /**
@@ -247,18 +253,6 @@ export declare class Model<T extends Instance> {
    * @param columns
    */
   createAndGet(columns: { [key: string]: any }): Promise<T>;
-
-  /**
-   * 保存实例数据
-   * @param instance 
-   */
-  save(instance: T): Promise<void>;
-
-  /**
-   * 删除实例数据
-   * @param instance 
-   */
-  delete(instance: T): Promise<void>;
 }
 
 /**

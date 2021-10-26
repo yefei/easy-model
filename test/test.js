@@ -284,6 +284,13 @@ describe('Model', function() {
     await user.save();
   });
 
+  it('update(coloums)', async function() {
+    const query = new Query(conn);
+    const user = await User(query).find().get('name', 'id');
+    await user.update({ name: '123456' });
+    assert(user.name, "123456");
+  });
+
   it('delete', async function() {
     const query = new Query(conn);
     const ins = await User(query).find({ id }).delete();
