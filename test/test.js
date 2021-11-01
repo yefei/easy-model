@@ -409,4 +409,15 @@ describe('Model', function() {
       .get();
     eq(typeof data.user.profile, 'object');
   });
+
+  it('page', async function() {
+    const query = new Query(conn);
+    const data = await Message(query).find().page({ limit: 10, order: ['-id'] });
+    assert.ok(data.total > 0);
+    assert.ok(data.list.length > 0);
+
+    const data2 = await Message(query).find().page({ limit: 10, order: '-id' });
+    assert.ok(data2.total == data.total);
+    assert.ok(data2.list.length == data.list.length);
+  });
 });

@@ -2,6 +2,8 @@ import { Query, Where } from 'mysql-easy-query';
 import { AttrBuilder } from 'sql-easy-builder';
 export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } from 'mysql-easy-query';
 
+type ColumnList = (string | { [key: string]: any })[];
+
 export interface VirtualField {
   get(): any;
   set(value: any): void;
@@ -71,10 +73,21 @@ export interface ManyOptions {
   as?: string;
 
   /** 需要的结果列 */
-  columns?: string[] | object;
+  columns?: ColumnList;
 
   /** 是否使用并行查询 */
   parallel?: boolean;
+}
+
+export interface PageOptions {
+  /** 分页条数 */
+  limit: number;
+
+  /** 分页位置 */
+  offset?: number;
+
+  /** 排序 */
+  order?: string | string[];
 }
 
 /**
@@ -173,12 +186,19 @@ export declare class Finder<T extends Instance> {
   /**
    * @param columns 需要检出的字段，默认全部
    */
-  all(...columns: (string | { [key: string]: any })[]): Promise<T[]>;
+  all(...columns: ColumnList): Promise<T[]>;
 
   /**
    * @param columns 需要检出的字段，默认全部
    */
-  get(...columns: (string | { [key: string]: any })[]): Promise<T>;
+  get(...columns: ColumnList): Promise<T>;
+
+  /**
+   * 分页取得数据列表
+   * @param page 分页选项
+   * @param columns 需要检出的字段，默认全部
+   */
+   async page(page: PageOptions, ...columns?: ColumnList): { total: number, list: T[] };
 
   /**
    * 取得一条数据中的一个值
