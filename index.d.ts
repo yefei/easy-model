@@ -198,7 +198,7 @@ export declare class Finder<T extends Instance> {
    * @param page 分页选项
    * @param columns 需要检出的字段，默认全部
    */
-   async page(page: PageOptions, ...columns?: ColumnList): { total: number, list: T[] };
+   page(page: PageOptions, ...columns: ColumnList): Promise<{ total: number, list: T[] }>;
 
   /**
    * 取得一条数据中的一个值
