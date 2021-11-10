@@ -1,11 +1,11 @@
-# Easy Model
+# ZenORM
 
-MySQL easy model, easy query. easy typing!
+Easy ORM, easy query. easy typing! Auto generate typescript declaration.
 
 ## install
 
 ```
-npm i mysql-easy-type mysql2
+npm i zenorm mysql2
 ```
 
 ## example
@@ -42,7 +42,7 @@ CREATE TABLE `message` (
 
 ```js
 const mysql = require('mysql2');
-const { model, Query } = require('mysql-easy-type');
+const { model, Query } = require('zenorm');
 
 const conn = mysql.createConnection({
   host: '127.0.0.1',
@@ -152,7 +152,7 @@ edit you package.json
 ```json
 {
   "scripts": {
-    "dbgen": "mysqleasytype",
+    "dbgen": "zenorm",
   }
 }
 ```

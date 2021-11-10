@@ -1,16 +1,16 @@
 {
-  "name": "mysql-easy-type",
-  "description": "MySQL easy model, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "1.23.2",
+  "name": "zenorm",
+  "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
+  "version": "0.0.1",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei <316606233@qq.com>",
   "license": "MIT",
   "bin": {
-    "mysqleasytype": "./bin/type-generate"
+    "zenorm": "./bin/zenorm"
   },
   "scripts": {
-    "gen": "node ./bin/type-generate",
+    "gen": "node ./bin/zenorm",
     "test": "npm run gen && mocha"
   },
   "keywords": [
