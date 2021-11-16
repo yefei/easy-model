@@ -1,6 +1,6 @@
 'use strict';
 
-const { Profile, Message } = require('../_dist/models');
+const { ProfileQuery, MessageQuery } = require('../_dist/models');
 
 module.exports = {
   virtuals: {
@@ -14,10 +14,10 @@ module.exports = {
     }
   },
   join: {
-    profile: { model: Profile, fk: 'id', ref: 'user_id' },
-    messages: { model: Message, fk: 'id', ref: 'user_id', asList: true },
+    profile: { model: ProfileQuery, fk: 'id', ref: 'user_id' },
+    messages: { model: MessageQuery, fk: 'id', ref: 'user_id', asList: true },
   },
   many: {
-    messageList: { model: Message },
+    messageList: { model: MessageQuery },
   },
 };

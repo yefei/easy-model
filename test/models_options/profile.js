@@ -1,9 +1,9 @@
 'use strict';
 
-const { User } = require('../_dist/models');
+const { UserQuery } = require('../_dist/models');
 
 module.exports = {
   join: {
-    user: { model: User },
+    user: { model: UserQuery },
   },
 };

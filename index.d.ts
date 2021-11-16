@@ -1,6 +1,5 @@
 import { Query, Where } from 'mysql-easy-query';
-import { AttrBuilder } from 'sql-easy-builder';
-export { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } from 'mysql-easy-query';
+import { AttrBuilder, Raw } from 'sql-easy-builder';
 
 type ColumnList = (string | { [key: string]: any })[];
 
@@ -58,8 +57,8 @@ export interface JoinOptions {
   where?: { [key: string]: any };
 }
 
-export interface DefinedJoinOptions extends JoinOptions {
-  model: Model;
+export interface DefinedJoinOptions<T extends Instance> extends JoinOptions {
+  model: Model<T>;
 }
 
 export interface ManyOptions {

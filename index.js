@@ -1,6 +1,5 @@
 'use strict';
 
-const { Query, PoolQuery, PoolClusterQuery, Where, Raw, raw, Op, AB, AttrBuilder } = require('mysql-easy-query');
 const Model = require('./lib/model');
 
 /**
@@ -20,13 +19,4 @@ function model(name, options) {
 module.exports = {
   Model,
   model,
-  Query,
-  PoolQuery,
-  PoolClusterQuery,
-  Where,
-  Raw,
-  raw,
-  Op,
-  AB,
-  AttrBuilder,
 };

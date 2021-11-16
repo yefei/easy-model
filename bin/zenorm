@@ -90,7 +90,9 @@ async function main() {
     `const { Model } = require('${requireName}');`,
     '',
   ];
-  const optionsJs = [];
+  const optionsJs = [
+    `function loadModelOption(c, p) { try { require.resolve(p); } catch (e) { return; } Object.assign(c, require(p)); }`,
+  ];
   const queriesTs = [];
   const queriesJs = [];
   for (const t of tables) {
@@ -114,32 +116,26 @@ async function main() {
     out.push(`}`);
     out.push(``);
     out.push(`export declare class ${className}Model extends Model<${className}Instance> {}`);
-    out.push(`export declare function ${className}(query: Query): ${className}Model;`);
-    out.push(`/** @deprecated 请使用 {${className}} */`);
-    out.push(`export declare function ${className}Query(query: Query): ${className}Model; // alias`);
+    out.push(`export declare function ${className}Query(query: Query): ${className}Model;`);
     out.push(``);
 
     // options
     const optionFilename = path.join(modelsOptionsDir, `${tableName}.js`);
-    if (fs.existsSync(optionFilename)) {
-      let optionRelative = path.relative(modelsFile, optionFilename).replace(/\\/g, '/').substring(3);
-      if (!optionRelative.startsWith('../')) optionRelative = `./${optionRelative}`;
-      optionRelative = optionRelative.slice(0, -3); // remove .js
-      optionsJs.push(`Object.assign(__${className}_option, require('${optionRelative}'));`);
-    }
+    let optionRelative = path.relative(modelsFile, optionFilename).replace(/\\/g, '/').substring(3);
+    if (!optionRelative.startsWith('../')) optionRelative = `./${optionRelative}`;
+    optionRelative = optionRelative.slice(0, -3); // remove .js
+    optionsJs.push(`loadModelOption(${className}Option, '${optionRelative}');`);
 
     // js
-    modelJs.push(`const __${className}_option = { name: '${tableName}', table: '${tableName}', pk: '${pk}' };`);
+    modelJs.push(`const ${className}Option = { name: '${tableName}', table: '${tableName}', pk: '${pk}' };`);
     modelJs.push(`/** @type { import('${tsRelative}').${className}Query } */`);
-    modelJs.push(`exports.${className} = query => new Model(__${className}_option, query);`);
-    modelJs.push(`/** @deprecated 请使用 {${className}} */`);
-    modelJs.push(`exports.${className}Query = exports.${className}; // alias`);
+    modelJs.push(`exports.${className}Query = query => new Model(${className}Option, query);`);
     modelJs.push(``);
 
     // queries
     const prop = `${className.charAt(0).toLowerCase()}${className.slice(1)}`;
     queriesTs.push(`  ${prop}: ${className}Model;`);
-    queriesJs.push(`  get ${prop}() { return exports.${className}(this._query); }`);
+    queriesJs.push(`  get ${prop}() { return exports.${className}Query(this._query); }`);
   }
 
   // queries

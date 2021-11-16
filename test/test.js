@@ -3,8 +3,13 @@
 require('dotenv').config();
 const assert = require('assert');
 const mysql = require('mysql2');
-const { Query, PoolQuery, model, AB } = require('..');
-const { User, Message, Profile } = require('./_dist/models');
+const { Query, PoolQuery, AB } = require('mysql-easy-query');
+const { model } = require('..');
+const {
+  UserQuery: User,
+  MessageQuery: Message,
+  ProfileQuery: Profile,
+} = require('./_dist/models');
 
 /*
 CREATE DATABASE `test`;
