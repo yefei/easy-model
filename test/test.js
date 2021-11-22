@@ -425,4 +425,12 @@ describe('Model', function() {
     assert.ok(data2.total == data.total);
     assert.ok(data2.list.length == data.list.length);
   });
+
+  it('join.get(id, user.name)', async function() {
+    const query = new Query(conn);
+    const data = await Message(query).find()
+      .join(User).get('id', 'content', 'user.name');
+    eq(typeof data.id, 'number');
+    eq(typeof data.user.name, 'string');
+  });
 });
