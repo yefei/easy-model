@@ -433,4 +433,10 @@ describe('Model', function() {
     eq(typeof data.id, 'number');
     eq(typeof data.user.name, 'string');
   });
+
+  it('join.group(id)', async function() {
+    const query = new Query(conn);
+    const data = await Message(query).find()
+      .join(User).group('id').get('id', 'content', 'user.name', 'user.id');
+  });
 });
