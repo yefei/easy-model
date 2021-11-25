@@ -42,7 +42,8 @@ CREATE TABLE `message` (
 
 ```js
 const mysql = require('mysql2');
-const { model, Query } = require('zenorm');
+const { Query } = require('mysql-easy-query');
+const { model } = require('zenorm');
 
 const conn = mysql.createConnection({
   host: '127.0.0.1',
@@ -152,25 +153,24 @@ edit you package.json
 ```json
 {
   "scripts": {
-    "dbgen": "zenorm",
+    "dbgen": "zenorm gen config.json",
   }
 }
 ```
 
-create .env file:
-```
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DATABASE=
-OUTPUT_TYPES_FILE=models.d.ts
-OUTPUT_MODELS_FILE=models.js
+create config.json file:
+```json
+{
+  "database": "test",
+  "host": "localhost",
+  "port": 3306,
+  "user": "root",
+  "password": "",
+}
 ```
 
 run:
 ```
-npm i dotenv mysql2 --save-dev
 npm run dbgen
 ```
 

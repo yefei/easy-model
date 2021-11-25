@@ -1,7 +1,13 @@
-import { Query, Where } from 'mysql-easy-query';
-import { AttrBuilder, Raw } from 'sql-easy-builder';
+import { AttrBuilder, Raw, Builder, Where } from 'sql-easy-builder';
 
 type ColumnList = (string | { [key: string]: any })[];
+
+/**
+ * 数据库驱动必须实现的方法
+ */
+export interface Query {
+  query(builder: Builder): Promise<any>;
+}
 
 export interface VirtualField {
   get(): any;

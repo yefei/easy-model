@@ -6,33 +6,29 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2');
 const { Query } = require('mysql-easy-query');
-try {
-  require('dotenv').config();
-// eslint-disable-next-line no-empty
-} catch (err) {}
 
-const dbname = process.env.MYSQL_DATABASE;
-if (!dbname) {
-  help();
+if (process.argv[2] !== 'gen' || !process.argv[3]) {
+  console.log('zenorm gen config.json');
   process.exit();
 }
 
-const requireName = process.env.EASY_TYPE_REQUIRE_NAME || 'zenorm';
-const modelsOptionsDir = path.resolve(process.cwd(), process.env.INPUT_OPTIONS_DIR || 'models_options');
-const tsFilename = process.env.OUTPUT_TYPES_FILE || 'models.d.ts';
+const config = Object.assign({}, require(path.join(process.cwd(), process.argv[3]))); 
+const requireName = process.env.ZENORM_MODULE_NAME || 'zenorm';
+const modelsOptionsDir = path.resolve(process.cwd(), config.optionsDir || 'models_options');
+const tsFilename = config.typingFile || 'models.d.ts';
 const tsFile = path.resolve(process.cwd(), tsFilename);
-const modelsFilename = process.env.OUTPUT_MODELS_FILE || 'models.js';
+const modelsFilename = config.modelsFile || 'models.js';
 const modelsFile = path.resolve(process.cwd(), modelsFilename);
 let tsRelative = path.relative(modelsFile, tsFile).replace(/\\/g, '/').substring(3);
 if (!tsRelative.startsWith('../')) tsRelative = `./${tsRelative}`;
 tsRelative = tsRelative.slice(0, -5); // remove .d.ts
 
 const conn = mysql.createConnection({
-  host: process.env.MYSQL_HOST || 'localhost',
-  port: process.env.MYSQL_PORT || 3306,
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD,
-  database: dbname,
+  host: config.host || 'localhost',
+  port: config.port || 3306,
+  user: config.user || 'root',
+  password: config.password,
+  database: config.database,
 });
 
 const query = new Query(conn);
@@ -72,7 +68,7 @@ async function main() {
     '// Please do not modify',
     `// date: ${new Date().toLocaleString()}`,
     `// user: ${process.env.USER || process.env.USERNAME || 'unknown'}@${process.env.COMPUTERNAME || 'unknown'}`,
-    `// database: ${dbname}`,
+    `// database: ${config.database}`,
   ];
   const out = [
     ...remark,
@@ -96,7 +92,7 @@ async function main() {
   const queriesTs = [];
   const queriesJs = [];
   for (const t of tables) {
-    const tableName = t[`Tables_in_${dbname}`];
+    const tableName = t[`Tables_in_${config.database}`];
     const className = nameCase(tableName);
     console.log('table:', tableName);
     const columns = await query.query('SHOW FULL COLUMNS FROM ??', [tableName]);
@@ -179,7 +175,7 @@ async function main() {
 }
 
 function help() {
-  console.log('Create environment variable file: .env');
+  console.log('Create config file: dbgen.json');
   console.log('Write optional configuration items:');
   console.log('MYSQL_HOST=localhost');
   console.log('MYSQL_PORT=3306');
@@ -195,6 +191,5 @@ main().catch(e => {
   console.log(e);
   console.log('='.repeat(100));
   console.log('Execution failed....');
-  help();
 }).finally(() => process.exit());
 setInterval(() => {}, 1000);

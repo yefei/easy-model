@@ -15,8 +15,8 @@
     "index.d.ts"
   ],
   "scripts": {
-    "gen": "node ./bin/zenorm",
-    "test": "npm run gen && mocha"
+    "gen": "node ./bin/zenorm gen test/config.json",
+    "test": "cross-env ZENORM_MODULE_NAME=../.. npm run gen && mocha"
   },
   "keywords": [
     "mysql",
@@ -28,7 +28,7 @@
   ],
   "devDependencies": {
     "assert": "^2.0.0",
-    "dotenv": "^8.2.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.18.0",
     "mocha": "^8.2.1",
     "mysql-easy-query": "^1.3.0",
