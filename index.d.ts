@@ -6,7 +6,7 @@ type ColumnList = (string | { [key: string]: any })[];
  * 数据库驱动必须实现的方法
  */
 export interface Query {
-  query(builder: Builder): Promise<any>;
+  query(arg0: string | ((builder: Builder) => void)): Promise<any>;
 }
 
 export interface VirtualField {

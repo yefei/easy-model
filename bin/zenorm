@@ -174,19 +174,6 @@ async function main() {
   fs.writeFileSync(modelsFile, modelJs.join('\n'));
 }
 
-function help() {
-  console.log('Create config file: dbgen.json');
-  console.log('Write optional configuration items:');
-  console.log('MYSQL_HOST=localhost');
-  console.log('MYSQL_PORT=3306');
-  console.log('MYSQL_USER=root');
-  console.log('MYSQL_PASSWORD=');
-  console.log('MYSQL_DATABASE=');
-  console.log('INPUT_OPTIONS_DIR=models_options');
-  console.log('OUTPUT_TYPES_FILE=models.d.ts');
-  console.log('OUTPUT_MODELS_FILE=models.js');
-}
-
 main().catch(e => {
   console.log(e);
   console.log('='.repeat(100));
