@@ -438,4 +438,16 @@ describe('Model', function() {
     const data = await Message(query).find()
       .join(User).group('id').get('id', 'content', 'user.name', 'user.id');
   });
+
+  it('join.order(X)', async function() {
+    const query = new Query(conn);
+    const data = await Message(query).find()
+      .join(User).group('user.id').order('-x').get('id', 'content', 'user.name', 'user.id', AB.SQL`COUNT({user.id}) AS {x}`);
+  });
+
+  it('default order', async function() {
+    const query = new Query(conn);
+    await Message(query).find().all();
+    await Message(query).find().join(User).all();
+  });
 });
