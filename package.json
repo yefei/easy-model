@@ -1,7 +1,7 @@
 {
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "index.js",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei <316606233@qq.com>",
