@@ -1,8 +1,6 @@
-'use strict';
+import { UserQuery } from '../_dist/models.js';
 
-const { UserQuery } = require('../_dist/models');
-
-module.exports = {
+export default {
   join: {
     user: { model: UserQuery },
   },

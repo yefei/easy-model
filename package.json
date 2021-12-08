@@ -1,22 +1,28 @@
 {
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "1.4.2",
-  "main": "index.js",
+  "version": "2.0.0",
+  "type": "module",
+  "exports": "./index.js",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "typings": "index.d.ts",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei <316606233@qq.com>",
   "license": "MIT",
   "bin": {
-    "zenorm": "./bin/zenorm"
+    "zenorm": "./bin/zenorm.js"
   },
   "files": [
     "bin",
     "lib",
+    "index.js",
     "index.d.ts"
   ],
   "scripts": {
-    "gen": "node ./bin/zenorm gen test/config.json",
-    "test": "cross-env ZENORM_MODULE_NAME=../.. npm run gen && mocha"
+    "gen": "node ./bin/zenorm.js gen test/config.json",
+    "test": "mocha"
   },
   "keywords": [
     "mysql",
@@ -27,8 +33,6 @@
     "database"
   ],
   "devDependencies": {
-    "assert": "^2.0.0",
-    "cross-env": "^7.0.3",
     "eslint": "^7.18.0",
     "mocha": "^8.2.1",
     "mysql-easy-query": "^1.3.0",

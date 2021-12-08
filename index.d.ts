@@ -5,16 +5,16 @@ type ColumnList = (string | { [key: string]: any })[];
 /**
  * 数据库驱动必须实现的方法
  */
-export interface Query {
+interface Query {
   query(arg0: string | ((builder: Builder) => void)): Promise<any>;
 }
 
-export interface VirtualField {
+interface VirtualField {
   get(): any;
   set(value: any): void;
 }
 
-export interface ModelOptions {
+interface ModelOptions {
   /** 主键名 */
   pk?: string;
 
@@ -37,7 +37,7 @@ export interface ModelOptions {
   many?: { [ as: string]: ManyOptions };
 }
 
-export interface JoinOptions {
+interface JoinOptions {
   /** 来源, 默认取 {joinModel.name} */
   from?: string;
 
@@ -63,11 +63,11 @@ export interface JoinOptions {
   where?: { [key: string]: any };
 }
 
-export interface DefinedJoinOptions<T extends Instance> extends JoinOptions {
+interface DefinedJoinOptions<T extends Instance> extends JoinOptions {
   model: Model<T>;
 }
 
-export interface ManyOptions {
+interface ManyOptions {
   /** many 表外键 */
   fk?: string;
 
@@ -84,7 +84,7 @@ export interface ManyOptions {
   parallel?: boolean;
 }
 
-export interface PageOptions {
+interface PageOptions {
   /** 分页条数 */
   limit: number;
 
@@ -98,7 +98,7 @@ export interface PageOptions {
 /**
  * 数据实例
  */
-export declare class Instance {
+declare class Instance {
   /**
    * 保存本条数据
    */
@@ -119,7 +119,7 @@ export declare class Instance {
 /**
  * 查找器
  */
-export declare class Finder<T extends Instance> {
+declare class Finder<T extends Instance> {
   constructor(model: Model<T>, where?: Where | { [key: string]: any });
 
   /**
@@ -239,7 +239,12 @@ export declare class Finder<T extends Instance> {
  * 模型
  */
 export declare class Model<T extends Instance> {
-  constructor(query: Query);
+  constructor(option: ModelOptions);
+
+  /**
+   * @param query 设置查询对象
+   */
+  setQuery(query: Query): Model<T>;
 
   /**
    * 查找

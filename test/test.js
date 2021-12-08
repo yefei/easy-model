@@ -1,23 +1,23 @@
-'use strict';
+import assert from 'node:assert';
+import mysql from 'mysql2';
+import { Query, PoolQuery, AB } from 'mysql-easy-query';
+import { model } from 'zenorm';
+import {
+  loadModelOptions,
+  UserQuery as User,
+  MessageQuery as Message,
+  ProfileQuery as Profile,
+} from './_dist/models.js';
 
-const assert = require('assert');
-const mysql = require('mysql2');
-const { Query, PoolQuery, AB } = require('mysql-easy-query');
-const { model } = require('..');
-const {
-  UserQuery: User,
-  MessageQuery: Message,
-  ProfileQuery: Profile,
-} = require('./_dist/models');
+await loadModelOptions();
 
 /*
-CREATE DATABASE `test`;
+CREATE DATABASE `zenorm_test`;
 CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `birthday` date DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `age` int DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 CREATE TABLE `profile` (
@@ -44,7 +44,7 @@ CREATE TABLE `nonautopk` (
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || '127.0.0.1',
   user: process.env.MYSQL_USER || 'root',
-  database: process.env.MYSQL_DATABASE || 'test',
+  database: process.env.MYSQL_DATABASE || 'zenorm_test',
   password: process.env.MYSQL_PASSWORD,
 });
 

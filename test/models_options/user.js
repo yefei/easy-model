@@ -1,6 +1,4 @@
-'use strict';
-
-const { ProfileQuery, MessageQuery } = require('../_dist/models');
+import { ProfileQuery, MessageQuery } from '../_dist/models';
 
 module.exports = {
   virtuals: {

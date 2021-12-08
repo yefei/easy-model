@@ -41,9 +41,9 @@ CREATE TABLE `message` (
 ```
 
 ```js
-const mysql = require('mysql2');
-const { Query } = require('mysql-easy-query');
-const { model } = require('zenorm');
+import mysql from 'mysql2';
+import { Query } from 'mysql-easy-query';
+import { model } from 'zenorm';
 
 const conn = mysql.createConnection({
   host: '127.0.0.1',

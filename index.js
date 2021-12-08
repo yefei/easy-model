@@ -1,13 +1,12 @@
-'use strict';
-
-const Model = require('./lib/model');
+import Model from './lib/model.js';
+export { default as Model } from './lib/model.js';
 
 /**
  * 创建一个模型对象
  * @param {string} name 模型名称，默认表名
  * @param {*} options 模型设置项
  */
-function model(name, options) {
+export function model(name, options) {
   options = Object.assign({
     pk: 'id',
     name,
@@ -15,8 +14,3 @@ function model(name, options) {
   }, options);
   return query => new Model(options, query);
 }
-
-module.exports = {
-  Model,
-  model,
-};
