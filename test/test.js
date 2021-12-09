@@ -3,13 +3,10 @@ import mysql from 'mysql2';
 import { Query, PoolQuery, AB } from 'mysql-easy-query';
 import { model } from 'zenorm';
 import {
-  loadModelOptions,
   UserQuery as User,
   MessageQuery as Message,
   ProfileQuery as Profile,
 } from './_dist/models.js';
-
-await loadModelOptions();
 
 /*
 CREATE DATABASE `zenorm_test`;
