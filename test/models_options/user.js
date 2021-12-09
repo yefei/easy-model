@@ -1,6 +1,4 @@
-import { ProfileQuery, MessageQuery } from '../_dist/models';
-
-module.exports = {
+export default {
   virtuals: {
     age: {
       get() {
@@ -12,10 +10,10 @@ module.exports = {
     }
   },
   join: {
-    profile: { model: ProfileQuery, fk: 'id', ref: 'user_id' },
-    messages: { model: MessageQuery, fk: 'id', ref: 'user_id', asList: true },
+    profile: { model: 'profile', fk: 'id', ref: 'user_id' },
+    messages: { model: 'message', fk: 'id', ref: 'user_id', asList: true },
   },
   many: {
-    messageList: { model: MessageQuery },
+    messageList: { model: 'message' },
   },
 };

@@ -81,6 +81,8 @@ async function main() {
     `import fs from 'node:fs/promises';`,
     `import { Model } from 'zenorm';`,
     '',
+    'const _modelMap = {};',
+    '',
   ];
   const optionsJs = [];
   const queriesTs = [];
@@ -117,9 +119,9 @@ async function main() {
     optionsJs.push(`await loadModelOption(${className}Option, '${optionRelative}');`);
 
     // js
-    modelJs.push(`const ${className}Option = { name: '${tableName}', table: '${tableName}', pk: '${pk}' };`);
-    modelJs.push(`export function ${className}Model() { return new Model(${className}Option); }`);
-    modelJs.push(`export function ${className}Query(query) { return ${className}Model().setQuery(query); }`);
+    modelJs.push(`const ${className}Option = { name: '${tableName}', table: '${tableName}', pk: '${pk}', _modelMap };`);
+    modelJs.push(`export function ${className}Query(query) { return new Model(${className}Option, query); }`);
+    modelJs.push(`_modelMap['${tableName}'] = ${className}Query;`);
     modelJs.push(``);
 
     // queries
@@ -151,15 +153,13 @@ async function main() {
   modelJs.push(`/* options update */`);
   modelJs.push(`async function loadModelOption(option, file) {`);
   modelJs.push(`  const url = new URL(file, import.meta.url);`);
-  modelJs.push(`  if (await fs.access(url).catch(e => false)) {`);
+  modelJs.push(`  if (await fs.access(url).then(() => true, () => false)) {`);
   modelJs.push(`    const mod = await import(url);`);
   modelJs.push(`    Object.assign(option, mod.default);`);
   modelJs.push(`  }`);
   modelJs.push(`}`);
   modelJs.push(``);
-  modelJs.push(`export async function loadModelOptions() {`);
-  modelJs.push('  ' + optionsJs.join('\n  '));
-  modelJs.push(`}`);
+  modelJs.push(...optionsJs);
   modelJs.push(``);
 
   console.log(`write types file: ${config.tsFile}`);
