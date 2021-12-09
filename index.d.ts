@@ -239,12 +239,7 @@ declare class Finder<T extends Instance> {
  * 模型
  */
 export declare class Model<T extends Instance> {
-  constructor(option: ModelOptions);
-
-  /**
-   * @param query 设置查询对象
-   */
-  setQuery(query: Query): Model<T>;
+  constructor(option: ModelOptions, query: Query);
 
   /**
    * 查找
