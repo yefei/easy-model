@@ -288,11 +288,6 @@ export declare class Model<T extends Instance> {
 export declare function model<T extends Instance>(name: string, options?: ModelOptions): (query: Query) => Model<T>;
 
 interface GenerateConfig {
-  database: string;
-  host: string;
-  port: number;
-  user: string;
-  password: string;
   optionsDir: string;
   typingFile: string;
   modelsFile: string;
@@ -300,6 +295,5 @@ interface GenerateConfig {
 
 /**
  * 生成模型代码
- * @param config
  */
-export declare function generate(config: GenerateConfig): Promise<void>;
+export declare function generate(query: Query, config: GenerateConfig): Promise<void>;

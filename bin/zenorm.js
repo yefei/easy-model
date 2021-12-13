@@ -2,6 +2,8 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import mysql from 'mysql2';
+import { Query } from 'mysql-easy-query';
 import { generate } from '../lib/generate.js';
 
 async function getConfig() {
@@ -21,11 +23,23 @@ async function getConfig() {
   };
 }
 
+function getQuery(config) {
+  const conn = mysql.createConnection({
+    host: config.host || 'localhost',
+    port: config.port || 3306,
+    user: config.user || 'root',
+    password: config.password,
+    database: config.database,
+  });
+  return new Query(conn);
+}
+
 if (process.argv[2] !== 'gen' || !process.argv[3]) {
   console.log('zenorm gen config.json');
   process.exit(1);
 } else {
   const config = await getConfig();
-  await generate(config);
+  const query = getQuery(config);
+  await generate(query, config);
   process.exit();
 }
