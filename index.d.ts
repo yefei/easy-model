@@ -286,3 +286,20 @@ export declare class Model<T extends Instance> {
  * @param options 选项
  */
 export declare function model<T extends Instance>(name: string, options?: ModelOptions): (query: Query) => Model<T>;
+
+interface GenerateConfig {
+  database: string;
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  optionsDir: string;
+  typingFile: string;
+  modelsFile: string;
+}
+
+/**
+ * 生成模型代码
+ * @param config
+ */
+export declare function generate(config: GenerateConfig): Promise<void>;

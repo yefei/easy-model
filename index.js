@@ -1,5 +1,6 @@
 import Model from './lib/model.js';
 export { default as Model } from './lib/model.js';
+export { generate } from './lib/generate.js';
 
 /**
  * 创建一个模型对象
