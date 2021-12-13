@@ -291,6 +291,7 @@ interface GenerateConfig {
   optionsDir: string;
   typingFile: string;
   modelsFile: string;
+  declareQueriesToModule?: string; // koa.Context.model
 }
 
 /**
