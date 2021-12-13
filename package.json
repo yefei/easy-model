@@ -1,7 +1,7 @@
 {
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "type": "module",
   "exports": "./index.js",
   "engines": {
