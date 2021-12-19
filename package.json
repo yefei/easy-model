@@ -2,12 +2,7 @@
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
   "version": "2.2.0",
-  "type": "module",
-  "exports": "./index.js",
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "typings": "index.d.ts",
+  "exports": "./dist/index.js",
   "repository": "https://github.com/yefei/easy-model",
   "author": "YeFei <316606233@qq.com>",
   "license": "MIT",
@@ -16,9 +11,7 @@
   },
   "files": [
     "bin",
-    "lib",
-    "index.js",
-    "index.d.ts"
+    "dist"
   ],
   "scripts": {
     "gen": "node ./bin/zenorm.js gen test/config.json",

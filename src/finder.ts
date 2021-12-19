@@ -1,45 +1,43 @@
-/**
- * @typedef { import('sql-easy-builder').Builder } Builder
- * @typedef { import('sql-easy-builder').Where } Where
- * @typedef { import('..').Query } Query
- * @typedef { import('..').ModelOptions } ModelOptions
- * @typedef { import('..').JoinOptions } JoinOptions
- * @typedef { import('..').DefinedJoinOptions } DefinedJoinOptions
- * @typedef { import('./model').Model } Model
- * @typedef { import('..').Instance } Instance
- */
-import { QUERY, OPTIONS } from './symbols.js';
-import { propertyAt } from './utils.js';
-import { DoesNotExist, UndefinedRelationException } from './excepts.js';
+import { QUERY, OPTIONS } from './symbols';
+import { propertyAt } from './utils';
+import { DoesNotExist, UndefinedRelationException } from './excepts';
+import { Model } from './model';
+import { Builder, JsonWhere } from 'sql-easy-builder';
+import { ColumnAs, DefinedJoinOptions, JoinOptions, ManyOptions, ModelOptions, ModelQuery, Query, ResultRow } from './types';
+import { Instance } from './instance';
 
 /**
  * Finder
  */
-export default class Finder {
-  /**
-   * @param {Model} model
-   * @param {Where | { [key: string]: any }} where
-   */
-  constructor(model, where) {
+export class Finder<T extends Instance> {
+  private readonly _model: Model<T>;
+  private readonly _query: Query;
+  private _where: JsonWhere;
+  private _whereAndOr: [where: JsonWhere, prep?: string, after?: string][] = [];
+  private _limit: number = null;
+  private _offset: number = 0;
+  private readonly _options: ModelOptions;
+  private _order: string[] = null;
+  private readonly _join: { [name: string]: JoinOptions | DefinedJoinOptions } = {};
+  private readonly _many: { [name: string]: ManyOptions } = {};
+  private readonly _group: string[] = [];
+  private readonly _having: JsonWhere = null;
+
+  constructor(model: Model<T>, where: JsonWhere) {
     this._model = model;
-    /** @type {Query} */
     this._query = model[QUERY];
     this._where = where;
-    this._whereAndOr = [];
-    this._limit = null;
-    /** @type {ModelOptions} */
     this._options = model[OPTIONS];
-    this._order = null;
-    this._join = {};
-    this._many = {};
-    this._group = [];
-    this._having = null;
   }
 
+  /**
+   * 复制当前 finder 实例
+   */
   clone() {
-    const finder = new Finder(this._model, this._where);
+    const finder = new Finder<T>(this._model, this._where);
     finder._whereAndOr = this._whereAndOr.slice();
-    finder._limit = this._limit ? this._limit.slice() : null;
+    finder._limit = this._limit;
+    finder._offset = this._offset;
     finder._order = this._order ? this._order.slice() : null;
     Object.assign(finder._join, this._join);
     Object.assign(finder._many, this._many);
@@ -48,66 +46,59 @@ export default class Finder {
 
   /**
    * 设置查询条件
-   * @param {Where | { [key: string]: any }} where
    */
-  where(where) {
+  where(where: JsonWhere) {
     this._where = where;
     return this;
   }
 
   /**
    * 追加 AND 查询
-   * @param {Where | { [key: string]: any }} where
    */
-  whereAnd(where) {
+  whereAnd(where: JsonWhere) {
     this._whereAndOr.push([where, 'AND']);
     return this;
   }
 
   /**
    * 追加 OR 查询
-   * @param {Where | { [key: string]: any }} where
    */
-  whereOr(where) {
+  whereOr(where: JsonWhere) {
     this._whereAndOr.push([where, 'OR (', ')']);
     return this;
   }
 
   /**
-   * @param {Builder} builder
+   * 构造查询
    */
-  _whereBuilder(builder) {
+  _whereBuilder(builder: Builder) {
     if (this._where) builder.where(this._where);
     this._whereAndOr.forEach(args => builder.where(...args));
   }
 
   /**
    * 限制条数
-   * @param {number} count
-   * @param {number} [offset]
-   * @returns {Finder}
    */
-  limit(count, offset = 0) {
-    this._limit = [count, offset];
+  limit(count: number, offset: number = 0) {
+    this._limit = count;
+    this._offset = offset;
     return this;
   }
 
-  _limitBuilder(builder) {
+  _limitBuilder(builder: Builder) {
     if (!this._limit) return;
-    builder.limit(...this._limit);
+    builder.limit(this._limit, this._offset);
   }
 
   /**
    * 排序
-   * @param  {...string} columns
-   * @returns {Finder}
    */
-  order(...columns) {
+  order(...columns: string[]) {
     this._order = columns;
     return this;
   }
 
-  _orderBuilder(builder) {
+  _orderBuilder(builder: Builder) {
     if (this._order && this._order.length > 0) {
       builder.order(...this._order);
       return;
@@ -131,28 +122,17 @@ export default class Finder {
 
   /**
    * 检查别名是否冲突
-   * @param {string} name
    */
-  _checkAsName(name) {
+  _checkAsName(name: string) {
     if (this._join[name] || this._many[name]) {
       throw new Error(`duplicate as: ${name}`);
     }
   }
 
   /**
-   * @param {Model | Finder | string} joinModel
-   * @param {object} [options]
-   * @param {string} [options.from] 来源表名称
-   * @param {string} [options.fk] 主表外键名称
-   * @param {string} [options.ref] 来源表引用键，默认为主键
-   * @param {string} [options.type] join 模式
-   * @param {string} [options.as] 输出别名, 可以使用 -> 命名空间
-   * @param {string} [options.asList] join 结果为列表
-   * @param {{ [key: string]: any }} [options.on] 覆盖默认 ON 查询条件
-   * @param {{ [key: string]: any }} [options.where] ON 查询条件追加查询语句
-   * @returns {Finder}
+   * 联合查询
    */
-  join(joinModel, options) {
+  join(joinModel: ModelQuery | Model<T> | string, options?: JoinOptions) {
     // 预定义 join
     if (typeof joinModel === 'string') {
       // 级连 join: a->b->c
@@ -181,10 +161,10 @@ export default class Finder {
           return _as;
         });
         return this;
-      } else {
-        options = this._getDefinedJoinOptions(this._options, joinModel, options);
       }
-      joinModel = options.model;
+      let _options = this._getDefinedJoinOptions(this._options, joinModel, options);
+      this._joinAppend(_options.model, _options);
+      return this;
     }
     this._joinAppend(joinModel, options);
     return this;
@@ -192,30 +172,22 @@ export default class Finder {
 
   /**
    * 取得预定义 join 项的配置
-   * @param {ModelOptions} targetModelOptions
-   * @param {string} key
-   * @param {JoinOptions} options
-   * @returns {DefinedJoinOptions}
    */
-  _getDefinedJoinOptions(targetModelOptions, key, options) {
+  _getDefinedJoinOptions(targetModelOptions: ModelOptions, key: string, options?: JoinOptions): DefinedJoinOptions {
     if (targetModelOptions.join && key in targetModelOptions.join) {
       return Object.assign({ as: key }, targetModelOptions.join[key], options);
     }
     throw new UndefinedRelationException(`${targetModelOptions.name} join ${key}`);
   }
 
-  _getModelByName(name) {
-    if (name in this._options._modelMap) {
-      return this._options._modelMap[name];
+  _getModelByName(name: string) {
+    if (name in this._options.modelMap) {
+      return this._options.modelMap[name];
     }
     throw new Error(`Undefined model: ${name}`);
   }
 
-  /**
-   * @param {Model | Finder} joinModel
-   * @param {object} [options]
-   */
-  _joinAppend(joinModel, options) {
+  _joinAppend(joinModel: ModelQuery | Model<T> | string, options?: JoinOptions) {
     if (typeof joinModel === 'string') {
       joinModel = this._getModelByName(joinModel);
     }
@@ -231,15 +203,12 @@ export default class Finder {
       asList: false,
     }, options);
     options.type = options.type.trim().toUpperCase();
-    options._model = joinModel;
+    // options._model = joinModel;
     this._checkAsName(options.as);
     this._join[options.as] = options;
   }
 
-  /**
-   * @param {Builder} builder
-   */
-  _joinPrep(builder) {
+  _joinPrep(builder: Builder) {
     Object.values(this._join).forEach(options => {
       const joinModel = options._model;
       options._asPath = options.as.split('->');
@@ -260,23 +229,15 @@ export default class Finder {
     });
   }
 
-  _columnPrep(col) {
+  _columnPrep(col: string | ColumnAs) {
     return typeof col === 'string' && !col.includes('.') ? `${this._options.table}.${col}` : col;
   }
 
   /**
    * 在取得主表结果后查询其他关联表多条结果
    * 用于一对多或多对多场景
-   * @param {Model | Finder | string} manyModel
-   * @param {object} [options]
-   * @param {string} [options.fk] many 表外键
-   * @param {string} [options.ref] 来源表引用键，默认为主键, 在JOIN结果中可使用.命名空间，例如 user.id
-   * @param {string} [options.as] 输出别名, 可以使用 -> 命名空间
-   * @param {string[] | object} [options.columns] 需要的结果列
-   * @param {boolean} [options.parallel] 是否使用并行查询
-   * @returns {Finder}
    */
-  many(manyModel, options) {
+  many(manyModel: string | ModelQuery | Model<T> | Finder<T>, options?: ManyOptions) {
     if (typeof manyModel === 'string') {
       if (this._options.many && manyModel in this._options.many) {
         options = Object.assign({ as: manyModel }, this._options.many[manyModel], options);
@@ -557,12 +518,11 @@ export default class Finder {
 
   /**
    * 查询数据是否存在
-   * @returns {Promise<boolean>}
    */
-  async exists() {
+  async exists(): Promise<boolean> {
     const result = await this._query.query(builder => {
       builder.select(builder.raw(1));
-      builder.from(this._model._table);
+      builder.from(this._model.table);
       this._joinPrep(builder);
       this._whereBuilder(builder);
       this._groupBuilder(builder);
@@ -574,13 +534,13 @@ export default class Finder {
 
   /**
    * 更新数据
-   * @param {{ [key: string]: any }} columns 需要更新的字段值
-   * @returns {Promise<number>} 更新条数
+   * @param columns 需要更新的字段值
+   * @returns 更新条数
    */
-  async update(columns) {
+  async update(columns: ResultRow): Promise<number> {
     columns = this._model._virtualsSetter(columns);
     const result = await this._query.query(builder => {
-      builder.update(this._model._table, columns);
+      builder.update(this._model.table, columns);
       this._whereBuilder(builder);
       this._orderBuilder(builder);
       this._limitBuilder(builder);
@@ -590,11 +550,11 @@ export default class Finder {
 
   /**
    * 删除数据
-   * @returns {Promise<number>} 删除的条数
+   * @returns 删除的条数
    */
-  async delete() {
+  async delete(): Promise<number> {
     const result = await this._query.query(builder => {
-      builder.delete(this._model._table);
+      builder.delete(this._model.table);
       this._whereBuilder(builder);
       this._orderBuilder(builder);
       this._limitBuilder(builder);
