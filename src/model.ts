@@ -1,19 +1,21 @@
-import { OPTIONS, UPDATE, MODEL, QUERY, PKVAL } from './symbols';
+import { OPTION, UPDATE, MODEL, QUERY, PKVAL, DATA } from './symbols';
 import { Finder } from './finder';
-import { ModelOptions, Query, ResultRow, ColumnList, ColumnValue } from './types';
+import { ModelOption, Query, ResultRow, ColumnList, ColumnValue } from './types';
 import { Instance } from './instance';
 import { JsonWhere } from 'sql-easy-builder';
 
 export class Model<T extends Instance> {
-  [OPTIONS]: ModelOptions;
+  [OPTION]: ModelOption;
   [QUERY]: Query;
+  instanceClass: T;
 
   /**
    * @param options 模型设置
    * @param query 查询器实例
    */
-  constructor(options: ModelOptions, query: Query) {
-    this[OPTIONS] = options;
+  constructor(instanceClass: T, option: ModelOption, query: Query) {
+    this.instanceClass = instanceClass;
+    this[OPTION] = option;
     this[QUERY] = query;
   }
 
@@ -21,7 +23,7 @@ export class Model<T extends Instance> {
    * 数据库表名
    */
   get table(): string {
-    return this[OPTIONS].table;
+    return this[OPTION].table;
   }
 
   /**
@@ -33,25 +35,29 @@ export class Model<T extends Instance> {
         value: new Set(),
       },
       [PKVAL]: {
-        value: result[this[OPTIONS].pk],
+        value: result[this[OPTION].pk],
       },
       [MODEL]: {
         value: this,
       },
+      [DATA]: {
+        value: result,
+      },
     };
-    const origFields = new Set();
-    for (const [key, value] of Object.entries(result)) {
-      origFields.add(key);
+    for (const key of Object.keys(result)) {
       properties[key] = {
-        value,
         configurable: true,
         enumerable: true,
-        writable: true,
+        get() { return this[DATA][key]; },
+        set(value) {
+          this[UPDATE].add(key);
+          this[DATA][key] = value;
+        },
       };
     }
     // virtuals define
-    if (this[OPTIONS].virtuals) {
-      for (const [key, value] of Object.entries(this[OPTIONS].virtuals)) {
+    if (this[OPTION].virtuals) {
+      for (const [key, value] of Object.entries(this[OPTION].virtuals)) {
         properties[key] = {
           configurable: true,
           enumerable: true,
@@ -60,30 +66,22 @@ export class Model<T extends Instance> {
         };
       }
     }
-    const ins = Object.create(Instance.prototype, properties);
-    return new Proxy(ins, {
-      set(obj, prop, value) {
-        if (origFields.has(prop)) {
-          obj[UPDATE].add(prop);
-        }
-        obj[prop] = value;
-        return true;
-      }
-    });
+    const ins: T = Object.create(this.instanceClass, properties);
+    return ins;
   }
 
   /**
    * 查找
    */
   find(where?: JsonWhere) {
-    return new Finder(this, where);
+    return new Finder<T>(this, where);
   }
 
   /**
    * 通过主键取得一条数据
    */
   findByPk(pk: ColumnValue, ...columns: ColumnList) {
-    return this.find({ [this[OPTIONS].pk]: pk }).get(...columns);
+    return this.find({ [this[OPTION].pk]: pk }).get(...columns);
   }
 
   /**
@@ -105,23 +103,23 @@ export class Model<T extends Instance> {
    */
   _virtualsSetter(row: ResultRow) {
     // virtuals setter
-    if (this[OPTIONS].virtuals) {
+    if (this[OPTION].virtuals) {
       row = Object.assign({}, row);
       const virtuals: [string, ColumnValue][] = [];
       for (const key of Object.keys(row)) {
-        if (this[OPTIONS].virtuals[key]) {
+        if (this[OPTION].virtuals[key]) {
           virtuals.push([key, row[key]]);
           delete row[key];
         }
       }
       if (virtuals.length) {
-        const ins = this._createInstance(row);
+        const ins: Instance = this._createInstance(row);
         for (const [key, value] of virtuals) {
           ins[key] = value;
         }
         // append columns
         for (const key of Object.keys(ins)) {
-          if (!this[OPTIONS].virtuals[key] && !row[key]) {
+          if (!this[OPTION].virtuals[key] && !row[key]) {
             row[key] = ins[key];
           }
         }
@@ -133,13 +131,13 @@ export class Model<T extends Instance> {
   /**
    * 创建一条数据
    */
-  async create(columns: ResultRow): Promise<number | ColumnValue> {
+  async create(columns: ResultRow): Promise<ColumnValue> {
     columns = this._virtualsSetter(columns);
     const r = await this[QUERY].query(builder => {
       builder.insert(this.table, columns);
     });
     // 表不为自增主键无法获取 insertId 则尝试使用插入值
-    return r.insertId || columns[this[OPTIONS].pk] || r.insertId;
+    return r.insertId || columns[this[OPTION].pk] || r.insertId;
   }
 
   /**

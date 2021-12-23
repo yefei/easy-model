@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import {  } from 'fs';
+import * as path from 'path';
 import mysql from 'mysql2';
 import { Query } from 'mysql-easy-query';
-import { generate } from '../lib/generate.js';
+import { generate } from '../lib/generate';
 
 async function getConfig() {
   const configFile = path.join(process.cwd(), process.argv[3]);

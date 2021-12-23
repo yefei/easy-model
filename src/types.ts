@@ -38,7 +38,7 @@ export interface VirtualField {
 /**
  * 联合查询设置
  */
-export interface JoinOptions {
+export interface JoinOption {
   /** 来源, 默认取 {joinModel.name} */
   from?: string;
 
@@ -64,7 +64,7 @@ export interface JoinOptions {
   where?: { [key: string]: any };
 }
 
-export interface DefinedJoinOptions extends JoinOptions {
+export interface DefinedJoinOption extends JoinOption {
   /**
    * 模型名称
    */
@@ -74,7 +74,7 @@ export interface DefinedJoinOptions extends JoinOptions {
 /**
  * 关系表多条查询设置
  */
-export interface ManyOptions {
+export interface ManyOption {
   /** many 表外键 */
   fk?: string;
 
@@ -94,7 +94,7 @@ export interface ManyOptions {
 /**
  * 模型设置
  */
-export interface ModelOptions {
+export interface ModelOption {
   /** 主键名 */
   pk?: string;
 
@@ -111,10 +111,10 @@ export interface ModelOptions {
   virtuals?: { [key: string]: VirtualField };
 
   /** 预定义 join 配置项 */
-  join?: { [as: string]: DefinedJoinOptions };
+  join?: { [as: string]: DefinedJoinOption };
 
   /** 预定义 many 配置项 */
-  many?: { [as: string]: ManyOptions };
+  many?: { [as: string]: ManyOption };
 
   /**
    * 所有模型字典
@@ -125,7 +125,7 @@ export interface ModelOptions {
 /**
  * 分页参数
  */
-export interface PageOptions {
+export interface PageOption {
   /** 分页条数 */
   limit: number;
 

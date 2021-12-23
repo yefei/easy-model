@@ -1,6 +1,6 @@
 import { Builder } from 'sql-easy-builder';
 import { Model } from './model';
-import { OPTIONS, UPDATE, MODEL, QUERY, PKVAL } from './symbols';
+import { OPTION, UPDATE, MODEL, QUERY, PKVAL, DATA } from './symbols';
 import { ColumnValue, ResultRow } from './types';
 
 export class Instance {
@@ -17,9 +17,20 @@ export class Instance {
   [UPDATE]: Set<string>;
 
   /**
-   * 数据库字段值
+   * 数据库返回的原始数据
    */
-  [key: string]: any;
+  [DATA]: ResultRow;
+
+  /**
+   * 数据字段
+   */
+  [colunm: string]: any;
+
+  constructor(model: Model<Instance>, pkval: ColumnValue, data: ResultRow) {
+    this[MODEL] = model;
+    this[PKVAL] = pkval;
+    this[DATA] = data;
+  }
 
   /**
    * 保存实例数据
@@ -38,7 +49,7 @@ export class Instance {
     });
     const result = await model[QUERY].query((builder: Builder) => {
       builder.update(model.table, columns);
-      builder.where({ [model[OPTIONS].pk]: this[PKVAL] });
+      builder.where({ [model[OPTION].pk]: this[PKVAL] });
     });
     return result.affectedRows;
   }
@@ -54,16 +65,15 @@ export class Instance {
     const model = this[MODEL];
     const result = await model[QUERY].query((builder: Builder) => {
       builder.delete(model.table);
-      builder.where({ [model[OPTIONS].pk]: this[PKVAL] });
+      builder.where({ [model[OPTION].pk]: this[PKVAL] });
     });
     return result.affectedRows;
   }
 
   /**
    * 更新实例字段并保存
-   * @param columns
    */
-  update(columns: { [column: string]: any }) {
+  update(columns: ResultRow) {
     Object.assign(this, columns);
     return this.save();
   }
