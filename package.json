@@ -25,9 +25,13 @@
     "database"
   ],
   "devDependencies": {
+    "@types/lodash": "^4.14.178",
     "mocha": "^8.2.1",
     "mysql-easy-query": "^2.0.0",
     "mysql2": "^2.2.5",
     "sql-easy-builder": "^2.0.2"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
   }
 }

@@ -1,46 +1,44 @@
-import { QUERY, OPTIONS } from './symbols';
+import { cloneDeep } from 'lodash';
 import { propertyAt } from './utils';
 import { DoesNotExist, UndefinedRelationException } from './excepts';
-import { Model } from './model';
 import { Builder, JsonWhere } from 'sql-easy-builder';
-import { ColumnAs, DefinedJoinOptions, JoinOptions, ManyOptions, ModelOptions, ModelQuery, Query, ResultRow } from './types';
-import { Instance } from './instance';
+import { ColumnAs, ColumnList, DataRow, DefinedJoinOption, JoinOption, ManyOption, ModelClass, ModelOption, PageOption } from './types';
+import { Model } from './model';
+import { Repository } from './repository';
 
 /**
  * Finder
  */
-export class Finder<T extends Instance> {
-  private readonly _model: Model<T>;
-  private readonly _query: Query;
+export class Finder<T extends Model> {
+  private _repository: Repository<T>;
   private _where: JsonWhere;
   private _whereAndOr: [where: JsonWhere, prep?: string, after?: string][] = [];
   private _limit: number = null;
   private _offset: number = 0;
-  private readonly _options: ModelOptions;
   private _order: string[] = null;
-  private readonly _join: { [name: string]: JoinOptions | DefinedJoinOptions } = {};
-  private readonly _many: { [name: string]: ManyOptions } = {};
-  private readonly _group: string[] = [];
-  private readonly _having: JsonWhere = null;
+  private _join: { [name: string]: DefinedJoinOption<T> } = {};
+  private _many: { [name: string]: ManyOption } = {};
+  private _group: string[] = [];
+  private _having: JsonWhere = null;
 
-  constructor(model: Model<T>, where: JsonWhere) {
-    this._model = model;
-    this._query = model[QUERY];
-    this._where = where;
-    this._options = model[OPTIONS];
+  constructor(repository: Repository<T>) {
+    this._repository = repository;
   }
 
   /**
    * 复制当前 finder 实例
    */
   clone() {
-    const finder = new Finder<T>(this._model, this._where);
-    finder._whereAndOr = this._whereAndOr.slice();
+    const finder = new Finder<T>(this._repository);
+    finder._where = cloneDeep(this._where);
+    finder._whereAndOr = cloneDeep(this._whereAndOr);
     finder._limit = this._limit;
     finder._offset = this._offset;
     finder._order = this._order ? this._order.slice() : null;
-    Object.assign(finder._join, this._join);
-    Object.assign(finder._many, this._many);
+    finder._join = cloneDeep(this._join);
+    finder._many = cloneDeep(this._many);
+    finder._group = this._group.slice();
+    finder._having = cloneDeep(this._having);
     return finder;
   }
 
@@ -48,7 +46,7 @@ export class Finder<T extends Instance> {
    * 设置查询条件
    */
   where(where: JsonWhere) {
-    this._where = where;
+    this._where = cloneDeep(where);
     return this;
   }
 
@@ -103,19 +101,20 @@ export class Finder<T extends Instance> {
       builder.order(...this._order);
       return;
     }
+    const defaultOrder = this._repository.option.order || [];
     // 没有指定排序得情况下使用默认 order
-    if (this._options.order && this._options.order.length > 0) {
+    if (defaultOrder.length > 0) {
       // 没有 join 直接使用默认 order
       if (Object.keys(this._join).length === 0) {
-        builder.order(...this._options.order);
+        builder.order(...defaultOrder);
         return;
       }
       // 在有 join 的情况下如果没有指定目标表则默认使用当前表
-      builder.order(...this._options.order.map(i => {
+      builder.order(...defaultOrder.map(i => {
         if (i.startsWith('-')) {
-          return `-${this._options.name}.${i.slice(1)}`;
+          return `-${this._repository.option.table}.${i.slice(1)}`;
         }
-        return `${this._options.name}.${i}`;
+        return `${this._repository.option.table}.${i}`;
       }));
     }
   }
@@ -124,7 +123,7 @@ export class Finder<T extends Instance> {
    * 检查别名是否冲突
    */
   _checkAsName(name: string) {
-    if (this._join[name] || this._many[name]) {
+    if (name in this._join || name in this._many) {
       throw new Error(`duplicate as: ${name}`);
     }
   }
@@ -132,16 +131,15 @@ export class Finder<T extends Instance> {
   /**
    * 联合查询
    */
-  join(joinModel: ModelQuery | Model<T> | string, options?: JoinOptions) {
-    // 预定义 join
-    if (typeof joinModel === 'string') {
+  join(target: string | ModelClass<T>, joinOption?: JoinOption) {
+    if (typeof target === 'string') {
       // 级连 join: a->b->c
-      if (joinModel.indexOf('->') > 0) {
-        const joins = joinModel.split('->');
+      if (target.indexOf('->') > 0) {
+        const joins = target.split('->');
         let _options = this._join[joins[0]];
         // 是否需要加入第一级 join: a
         if (!_options) {
-          _options = this._getDefinedJoinOptions(this._options, joins[0]);
+          _options = this._getDefinedJoinOption(this._repository.option, joins[0]);
           this._joinAppend(_options.model, _options);
         }
         // 依次加入后续 join: b->c
@@ -150,30 +148,30 @@ export class Finder<T extends Instance> {
           _options = this._join[_as];
           if (!_options) {
             const preJoinOptions = this._join[pre];
-            const curJoinOptions = options && curIndex === joins.length - 1 ? Object.assign({}, options) : {};
+            const curJoinOptions = joinOption && curIndex === joins.length - 1 ? Object.assign({}, joinOption) : {};
             Object.assign(curJoinOptions, {
               as: _as,
               from: preJoinOptions.as,
             });
-            _options = this._getDefinedJoinOptions(preJoinOptions._model[OPTIONS], cur, curJoinOptions);
+            _options = this._getDefinedJoinOption(preJoinOptions._model[OPTIONS], cur, curJoinOptions);
             this._joinAppend(_options.model, _options);
           }
           return _as;
         });
         return this;
       }
-      let _options = this._getDefinedJoinOptions(this._options, joinModel, options);
-      this._joinAppend(_options.model, _options);
-      return this;
+      let _options = this._getDefinedJoinOption(this._options, joinModel, joinOption);
+      target = _options.model;
+      joinOption = _options;
     }
-    this._joinAppend(joinModel, options);
+    this._joinAppend(target, joinOption);
     return this;
   }
 
   /**
    * 取得预定义 join 项的配置
    */
-  _getDefinedJoinOptions(targetModelOptions: ModelOptions, key: string, options?: JoinOptions): DefinedJoinOptions {
+  _getDefinedJoinOption(targetModelOptions: ModelOption, key: string, options?: JoinOption): DefinedJoinOption {
     if (targetModelOptions.join && key in targetModelOptions.join) {
       return Object.assign({ as: key }, targetModelOptions.join[key], options);
     }
@@ -349,10 +347,9 @@ export class Finder<T extends Instance> {
   /**
    * 取得数据
    * @param {(string | { [key: string]: any })[]} [columns] 需要检出的字段
-   * @param {boolean} isOne 是否取单条
-   * @returns {Promise<Instance | Instance[] | null>}
+   * @param isOne 是否取单条
    */
-  async _fetch(columns, isOne = false) {
+  async _fetch(columns: ColumnList, isOne = false): Promise<T | T[] | null> {
     const _join = Object.values(this._join);
     const _notJoin = _join.length === 0;
     // 取一条且无join情况
@@ -432,32 +429,22 @@ export class Finder<T extends Instance> {
 
   /**
    * 取得数据列表
-   * @param {...(string | { [key: string]: any })} [columns] 需要检出的字段
-   * @returns {Promise<Instance[]>}
    */
-  all(...columns) {
+  all(...columns: ColumnList): Promise<T[]> {
     return this._fetch(columns, false);
   }
 
   /**
    * 取得一条数据
-   * @param {...(string | { [key: string]: any })} [columns] 需要检出的字段
-   * @returns {Promise<Instance | null>}
    */
-  get(...columns) {
+  get(...columns: ColumnList): Promise<T> {
     return this._fetch(columns, true);
   }
 
   /**
    * 分页取得数据列表
-   * @param {object} param0
-   * @param {number} param0.limit
-   * @param {number} param0.offset
-   * @param {string[]} param0.order
-   * @param  {...string} columns
-   * @returns
    */
-  async page({ limit, offset, order }, ...columns) {
+  async page({ limit, offset, order }: PageOption, ...columns: ColumnList) {
     const total = await this.count();
     let list = [];
     if (total > 0) {
@@ -472,26 +459,25 @@ export class Finder<T extends Instance> {
 
   /**
    * 直接取得查询数据中的一个值
-   * @param {string} column
-   * @param {*} [defaultValue]
-   * @returns {Promise<*>}
+   * @param column
+   * @param defaultValue 如果找不到返回的默认值，不指定则抛出异常 DoesNotExist
    */
-  async value(column, defaultValue) {
-    const result = await this._query.query(builder => {
+  async value(column: string, defaultValue?: any) {
+    const result = await this._repository.query(builder => {
       builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
-      builder.from(this._model._table);
+      builder.from(this._repository.tableName);
       this._joinPrep(builder);
       builder.nestTables(false);
       this._whereBuilder(builder);
       this._groupBuilder(builder);
       this._orderBuilder(builder);
-      builder.one(this._limit ? this._limit[1] : 0);
+      builder.one(this._limit || 0);
     });
     if (result && result.value) {
       return result.value;
     }
     if (defaultValue === undefined) {
-      throw new DoesNotExist(`The requested object '${this._options.name}' does not exist.`);
+      throw new DoesNotExist(`The requested object '${this._repository.tableName}' does not exist.`);
     }
     return defaultValue;
   }
@@ -502,9 +488,9 @@ export class Finder<T extends Instance> {
    * @returns {Promise<number>}
    */
   async count(column = '*') {
-    const result = await this._query.query(builder => {
+    const result = await this._repository.query(builder => {
       builder.count(column, 'c');
-      builder.from(this._model._table);
+      builder.from(this._repository.tableName);
       this._joinPrep(builder);
       this._whereBuilder(builder);
       if (this._group.length) {
@@ -520,9 +506,9 @@ export class Finder<T extends Instance> {
    * 查询数据是否存在
    */
   async exists(): Promise<boolean> {
-    const result = await this._query.query(builder => {
-      builder.select(builder.raw(1));
-      builder.from(this._model.table);
+    const result = await this._repository.query(builder => {
+      builder.select(builder.raw('1'));
+      builder.from(this._repository.tableName);
       this._joinPrep(builder);
       this._whereBuilder(builder);
       this._groupBuilder(builder);
@@ -534,13 +520,12 @@ export class Finder<T extends Instance> {
 
   /**
    * 更新数据
-   * @param columns 需要更新的字段值
+   * @param data 需要更新的字段值
    * @returns 更新条数
    */
-  async update(columns: ResultRow): Promise<number> {
-    columns = this._model._virtualsSetter(columns);
-    const result = await this._query.query(builder => {
-      builder.update(this._model.table, columns);
+  async update(data: DataRow): Promise<number> {
+    const result = await this._repository.query(builder => {
+      builder.update(this._repository.tableName, data);
       this._whereBuilder(builder);
       this._orderBuilder(builder);
       this._limitBuilder(builder);
@@ -553,8 +538,8 @@ export class Finder<T extends Instance> {
    * @returns 删除的条数
    */
   async delete(): Promise<number> {
-    const result = await this._query.query(builder => {
-      builder.delete(this._model.table);
+    const result = await this._repository.query(builder => {
+      builder.delete(this._repository.tableName);
       this._whereBuilder(builder);
       this._orderBuilder(builder);
       this._limitBuilder(builder);

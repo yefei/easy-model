@@ -1,6 +1,5 @@
 import { Builder } from "sql-easy-builder";
-import { Instance } from "./instance";
-import { Model } from "./model";
+import { Model, OPTION } from "./model";
 
 /**
  * 数据库结果类型
@@ -8,32 +7,32 @@ import { Model } from "./model";
 export type ColumnValue = string | number | boolean | Date;
 
 /**
+ * 结果行对象
+ */
+export type DataRow = { [column: string]: ColumnValue };
+
+/**
+ * Model class
+ */
+export interface ModelClass<T> {
+  new (pkvak?: ColumnValue, data?: DataRow): T;
+  [OPTION]: ModelOption;
+}
+
+/**
  * 数据库列别名
  */
 export type ColumnAs = { [column: string]: string };
 
 /**
- * 数据库列列表
+ * 数据库列名列表
  */
 export type ColumnList = (string | ColumnAs)[];
 
 /**
- * 结果行对象
- */
-export type ResultRow = { [column: string]: ColumnValue };
-
-/**
  * 模型查询方法
  */
-export type ModelQuery = <T extends Instance>(query: Query) => Model<T>;
-
-/**
- * 虚拟字段
- */
-export interface VirtualField {
-  get(): any;
-  set(value: any): void;
-}
+// export type ModelQuery = <T extends Model>(query: Query) => T;
 
 /**
  * 联合查询设置
@@ -64,11 +63,11 @@ export interface JoinOption {
   where?: { [key: string]: any };
 }
 
-export interface DefinedJoinOption extends JoinOption {
+export interface DefinedJoinOption<T extends Model> extends JoinOption {
   /**
    * 模型名称
    */
-  model: string;
+  model: ModelClass<T>;
 }
 
 /**
@@ -95,7 +94,10 @@ export interface ManyOption {
  * 模型设置
  */
 export interface ModelOption {
-  /** 主键名 */
+  /**
+   * 主键名
+   * @default 'id'
+   */
   pk?: string;
 
   /** 模型名，默认表名，关联关系中不可重复 */
@@ -107,19 +109,11 @@ export interface ModelOption {
   /** 默认排序，不设置则不排序 */
   order?: string[];
 
-  /** 虚拟字段 */
-  virtuals?: { [key: string]: VirtualField };
-
   /** 预定义 join 配置项 */
   join?: { [as: string]: DefinedJoinOption };
 
   /** 预定义 many 配置项 */
   many?: { [as: string]: ManyOption };
-
-  /**
-   * 所有模型字典
-   */
-  modelMap?: { [name: string]: ModelQuery };
 }
 
 /**

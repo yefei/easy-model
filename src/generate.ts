@@ -1,3 +1,4 @@
+import { camelCase, upperFirst } from 'lodash';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -8,13 +9,6 @@ function getColumnType(type) {
   if (type.search(/timestamp|datetime/i) != -1) return 'Date';
   if (type.search(/int|float/i) != -1) return 'number';
   return 'string';
-}
-
-/**
- * @param {string} name
- */
-function nameCase(name) {
-  return name.split('_').map(c => c[0].toUpperCase() + c.substring(1)).join('');
 }
 
 /**
@@ -56,7 +50,7 @@ export async function generate(query, config) {
   const queriesJs = [];
   for (const t of tables) {
     const tableName = t[`Tables_in_${database}`];
-    const className = nameCase(tableName);
+    const className = upperFirst(camelCase(tableName));
     console.log('table:', tableName);
     const columns = await query.query('SHOW FULL COLUMNS FROM ??', [tableName]);
     let pk;
