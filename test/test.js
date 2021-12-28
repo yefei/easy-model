@@ -316,6 +316,13 @@ describe('Model', function() {
     await userFinder.get();
   });
 
+  it('finder.whereAnd', async function() {
+    const query = new Query(conn);
+    const userFinder = User(query).find();
+    userFinder.whereAnd({ id: 2 });
+    await userFinder.get();
+  });
+
   it('createAndGet', async function() {
     const query = new Query(conn);
     const ins = await User(query).createAndGet({ name: 'yf', age: 11 });
