@@ -319,7 +319,7 @@ describe('Model', function() {
   it('finder.whereAnd', async function() {
     const query = new Query(conn);
     const userFinder = User(query).find();
-    userFinder.whereAnd({ id: 2 });
+    userFinder.whereAnd({ id: 2 }).whereOr({ name: 111 });
     await userFinder.get();
   });
 
