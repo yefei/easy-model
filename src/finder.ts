@@ -78,7 +78,14 @@ export default class Finder {
    */
   _whereBuilder(builder) {
     if (this._where) builder.where(this._where);
-    this._whereAndOr.forEach(args => builder.where(...args));
+    if (this._whereAndOr.length) {
+      if (this._where) {
+        this._whereAndOr.forEach(args => builder.where(...args));
+      } else {
+        builder.where(this._whereAndOr[0]);
+        this._whereAndOr.slice(1).forEach(args => builder.where(...args));
+      }
+    }
   }
 
   /**
