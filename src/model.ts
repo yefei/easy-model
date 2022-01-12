@@ -57,6 +57,26 @@ export function getModelOption<T extends Model>(modelClass: ModelClass<T>) {
   return modelClass[OPTION];
 }
 
+interface VirtualDescriptor {
+  get?(): any;
+  set?(v: any): void;
+}
+
+/**
+ * 定义虚拟属性
+ */
+export function virtual(p: VirtualDescriptor) {
+  return function (target: Object, propertyKey: string | symbol) {
+    if (typeof propertyKey === 'symbol') {
+      throw new Error('virtual property cannot be symbol');
+    }
+    Object.defineProperty(target, propertyKey, Object.assign(p, {
+      configurable: true,
+      enumerable: true,
+    }));
+  }
+}
+
 /**
  * 设置模型的预定义 join 关系
  */

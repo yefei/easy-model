@@ -25,7 +25,7 @@ export type ColumnList = (string | ColumnAs)[];
  * Model class
  */
 export interface ModelClass<T extends Model> {
-  new (...args: any[]): T;
+  new (): T;
   [OPTION]?: ModelOption;
 }
 

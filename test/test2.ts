@@ -1,6 +1,6 @@
 import * as mysql from 'mysql2';
 import { PoolQuery } from 'mysql-easy-query';
-import { model, join, many } from "../src/model";
+import { model, join, many, virtual } from "../src/model";
 import { Repository } from "../src/repository";
 import { Query } from '../src/types';
 
@@ -21,6 +21,8 @@ class Message {}
 
 @model()
 class User {
+  name: string;
+
   birthday: Date;
 
   @join(Profile)
@@ -29,24 +31,34 @@ class User {
   @many(Message)
   messages: Message[];
 
-  // constructor(ttt: string) {}
-
-  get age() {
-    this.profile.name;
-    return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
-  }
-
-  set age(value) {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - value, 1, 1);
-    this.birthday = date;
-  }
+  @virtual({
+    get() {
+      return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
+    },
+    set(v) {
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - v, 1, 1);
+      this.birthday = date;
+    }
+  })
+  age: number;
 }
 
 const repo = new Repository(User, query);
 
 async function main() {
-  
+  console.log(User.prototype);
+  const res = await repo.findByPk(3);
+  console.log(res);
+  console.log(JSON.stringify(res));
+  console.log(Object.getOwnPropertyNames(res));
+  console.log(res.age);
+  console.log(res instanceof User);
+  res.age = 66;
+  await repo.save(res);
 }
 
-main().then(() => process.exit(0));
+main().then(() => process.exit(0), e => {
+  console.error(e);
+  process.exit(1);
+});

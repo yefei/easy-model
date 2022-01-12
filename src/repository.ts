@@ -32,19 +32,31 @@ export class Repository<T extends Model> {
    * 构造模型实例
    */
   createInstance(data?: DataResult): T {
-    const ins = new this.modelClass(data ? data[this.option.pk] : undefined, data);
-    for (const key of Object.keys(data)) {
-      Object.defineProperty(ins, key, {
+    if (!data) return null;
+    const properties: PropertyDescriptorMap = {
+      [PKVAL]: { value: data[this.option.pk] },
+    };
+    const dataFields = new Set();
+    for (const [key, value] of Object.entries(data)) {
+      dataFields.add(key);
+      properties[key] = {
         configurable: true,
         enumerable: true,
-        get() { return this[DATA][key]; },
-        set(value) {
-          this[UPDATE].add(key);
-          this[DATA][key] = value;
-        },
-      });
+        writable: true,
+        value,
+      };
     }
-    return ins;
+    const ins = Object.create(this.modelClass.prototype, properties);
+    return new Proxy(ins, {
+      set(obj, prop, value) {
+        if (dataFields.has(prop)) {
+          if (!obj[UPDATE]) obj[UPDATE] = new Set();
+          obj[UPDATE].add(prop);
+        }
+        obj[prop] = value;
+        return true;
+      }
+    });
   }
 
   /**
@@ -106,12 +118,16 @@ export class Repository<T extends Model> {
       throw new Error('Missing primary key value.');
     }
     const updateSet = ins[UPDATE];
-    if (updateSet.size === 0) return;
+    if (!updateSet || updateSet.size === 0) return;
     const data: DataResult = {};
     updateSet.forEach(f => {
       data[f] = ins[f];
     });
-    return this.find({ [this.option.pk]: ins[PKVAL] }).update(data);
+    const count = await this.find({ [this.option.pk]: ins[PKVAL] }).update(data);
+    if (this.option.pk in data) {
+      ins[PKVAL] = data[this.option.pk];
+    }
+    return count;
   }
 
   /**

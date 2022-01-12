@@ -27,6 +27,7 @@
     "database"
   ],
   "devDependencies": {
+    "@types/node": "^12.20.41",
     "mocha": "^8.2.1",
     "mysql-easy-query": "^2.0.0",
     "mysql2": "^2.2.5",
