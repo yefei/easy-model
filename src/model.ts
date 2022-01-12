@@ -1,227 +1,106 @@
-/**
- * @typedef { import('..').Query } Query
- * @typedef { import('sql-easy-builder').Builder } Builder
- * @typedef { import('sql-easy-builder').Where } Where
- */
-import { OPTIONS, UPDATE, MODEL, QUERY, PKVAL } from './symbols.js';
-import Finder from './finder.js';
+import "reflect-metadata";
+import { snakeCase } from 'snake-case';
+import { DataValue, DataResult, ModelClass, ManyOption, DefineJoinOption, JoinOption, ModelOption } from './types';
 
-class Instance {
+export const MODEL = Symbol('Model#model');
+export const OPTION = Symbol('Model#option');
+export const UPDATE = Symbol('Model#update');
+export const PKVAL = Symbol('Model#pkValue');
+export const DATA = Symbol('Model#data');
+export const JOIN = Symbol('Model#join');
+export const MANY = Symbol('Model#many');
+
+export interface Model {
   /**
-   * 保存实例数据
-   * @returns {Promise<number>} 更新条数
+   * 主键原始值
+   * 用于更新删除操作时防止主键被修改而更新错误的数据
    */
-  async save() {
-    if (this[PKVAL] === undefined) {
-      throw new Error('Missing primary key value.');
-    }
-    const model = this[MODEL];
-    /** @type {Set} */
-    const updateSet = this[UPDATE];
-    if (updateSet.size === 0) return;
-    const columns = {};
-    updateSet.forEach(f => {
-      columns[f] = this[f];
-    });
-    const result = await model[QUERY].query(builder => {
-      builder.update(model._table, columns);
-      builder.where({ [model[OPTIONS].pk]: this[PKVAL] });
-    });
-    return result.affectedRows;
-  }
+  [PKVAL]?: DataValue;
 
   /**
-   * 删除实例数据
-   * @returns {Promise<number>} 删除条数
+   * 将要被更新字段
    */
-  async delete() {
-    if (this[PKVAL] === undefined) {
-      throw new Error('Missing primary key value.');
-    }
-    const model = this[MODEL];
-    const result = await model[QUERY].query(builder => {
-      builder.delete(model._table);
-      builder.where({ [model[OPTIONS].pk]: this[PKVAL] });
-    });
-    return result.affectedRows;
-  }
+  [UPDATE]?: Set<string>;
 
   /**
-   * 更新实例字段并保存
-   * @param {{ [column: string]: any }} columns 
-   * @returns 
+   * 数据库返回的原始数据
    */
-  update(columns) {
-    Object.assign(this, columns);
-    return this.save();
-  }
+  [DATA]?: DataResult;
 
-  // toJSON() {
-  //   const result = {};
-  //   for (const [key, value] of Object.entries(this)) {
-  //     if (value instanceof Instance) {
-  //       result[key] = value.toJSON();
-  //     } else if (value !== undefined) {
-  //       result[key] = value;
-  //     }
-  //   }
-  //   return result;
-  // }
+  /**
+   * 数据字段
+   */
+  [colunm: string]: any;
 }
 
-export default class Model {
-  /**
-   * @param {*} options
-   * @param {Query} query
-   */
-  constructor(options, query) {
-    this[OPTIONS] = options;
-    this[QUERY] = query;
+/**
+ * 设置模型配置项
+ */
+export function model(option?: ModelOption) {
+  return function <T extends Model>(modelClass: ModelClass<T>) {
+    Object.assign(getModelOption(modelClass), option);
   }
+}
 
-  /**
-   * @returns {string}
-   */
-  get _table() {
-    return this[OPTIONS].table;
-  }
-
-  /**
-   * 构造数据实例
-   * @param {*} result
-   * @private
-   */
-  _createInstance(result) {
-    const properties = {
-      [UPDATE]: {
-        value: new Set(),
-      },
-      [PKVAL]: {
-        value: result[this[OPTIONS].pk],
-      },
-      [MODEL]: {
-        value: this,
-      }
+/**
+ * 取得模型配置项，如果没有则创建并设置到模型上
+ */
+export function getModelOption<T extends Model>(modelClass: ModelClass<T>) {
+  if (!modelClass[OPTION]) {
+    const name = modelClass.name;
+    modelClass[OPTION] = {
+      pk: 'id',
+      name,
+      table: snakeCase(name),
     };
-    const origFields = new Set();
-    for (const [key, value] of Object.entries(result)) {
-      origFields.add(key);
-      properties[key] = {
-        value,
-        configurable: true,
-        enumerable: true,
-        writable: true,
-      };
+  }
+  return modelClass[OPTION];
+}
+
+/**
+ * 设置模型的预定义 join 关系
+ */
+export function join<T extends Model>(modelClass: ModelClass<T>, option?: DefineJoinOption<T>) {
+  return function (target: Object, propertyKey: string | symbol) {
+    if (typeof propertyKey === 'symbol') {
+      throw new Error('join property cannot be symbol');
     }
-    // virtuals define
-    if (this[OPTIONS].virtuals) {
-      for (const [key, value] of Object.entries(this[OPTIONS].virtuals)) {
-        properties[key] = {
-          configurable: true,
-          enumerable: true,
-          get: value.get,
-          set: value.set,
-        };
-      }
+    const reflectMetadataType = Reflect.getMetadata('design:type', target, propertyKey);
+    const ove: JoinOption<T> = {
+      [MODEL]: modelClass,
+      as: propertyKey,
+      asList: reflectMetadataType === Array,
+    };
+    Reflect.defineMetadata(JOIN, Object.assign({}, option, ove), target, propertyKey);
+  }
+}
+
+/**
+ * 取得模型的预定义 join 关系
+ */
+export function getModelJoinOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string) {
+  return Reflect.getMetadata(JOIN, modelClass.prototype, propertyKey);
+}
+
+/**
+ * 预定义 many 关系
+ */
+export function many<T extends Model>(modelClass: ModelClass<T>, option?: ManyOption<T>) {
+  return function (target: Object, propertyKey: string | symbol) {
+    if (typeof propertyKey === 'symbol') {
+      throw new Error('many property cannot be symbol');
     }
-    const ins = Object.create(Instance.prototype, properties);
-    return new Proxy(ins, {
-      set(obj, prop, value) {
-        if (origFields.has(prop)) {
-          obj[UPDATE].add(prop);
-        }
-        obj[prop] = value;
-        return true;
-      }
-    });
+    const ove: ManyOption<T> = {
+      [MODEL]: modelClass,
+      as: propertyKey,
+    };
+    Reflect.defineMetadata(MANY, Object.assign({}, option, ove), target, propertyKey);
   }
+}
 
-  /**
-   * 查找
-   * @param {Where | { [key: string]: any }} where 
-   */
-  find(where) {
-    return new Finder(this, where);
-  }
-
-  /**
-   * 通过主键取得一条数据
-   * @param {*} pk 
-   * @param {...string} [columns]
-   */
-  findByPk(pk, ...columns) {
-    return this.find({ [this[OPTIONS].pk]: pk }).get(...columns);
-  }
-
-  /**
-   * 查询条数
-   * @param {Where | { [key: string]: any }} where
-   * @param {string | Raw} [column]
-   */
-  count(where, column) {
-    return this.find(where).count(column);
-  }
-
-  /**
-   * 通过条件查询数据是否存在
-   * @param {Where | { [key: string]: any }} where 
-   */
-  exists(where) {
-    return this.find(where).exists();
-  }
-
-  /**
-   * 虚拟字段设置
-   * @param {{ [key: string]: any }} columns 
-   * @returns { [key: string]: any }
-   */
-  _virtualsSetter(columns) {
-    // virtuals setter
-    if (this[OPTIONS].virtuals) {
-      columns = Object.assign({}, columns);
-      const virtuals = [];
-      for (const key of Object.keys(columns)) {
-        if (this[OPTIONS].virtuals[key]) {
-          virtuals.push([key, columns[key]]);
-          delete columns[key];
-        }
-      }
-      if (virtuals.length) {
-        const ins = this._createInstance(columns);
-        for (const [key, value] of virtuals) {
-          ins[key] = value;
-        }
-        // append columns
-        for (const key of Object.keys(ins)) {
-          if (!this[OPTIONS].virtuals[key] && !columns[key]) {
-            columns[key] = ins[key];
-          }
-        }
-      }
-    }
-    return columns;
-  }
-
-  /**
-   * 创建一条数据
-   * @param {{ [key: string]: any }} columns 
-   */
-  async create(columns) {
-    columns = this._virtualsSetter(columns);
-    const r = await this[QUERY].query(builder => {
-      builder.insert(this._table, columns);
-    });
-    // 表不为自增主键无法获取 insertId 则尝试使用插入值
-    return r.insertId || columns[this[OPTIONS].pk] || r.insertId;
-  }
-
-  /**
-   * 创建一条数据并返回数据
-   * @param {{ [key: string]: any }} columns
-   * @param {...string} [getColumns]
-   */
-  async createAndGet(columns, ...getColumns) {
-    const pk = await this.create(columns);
-    return this.findByPk(pk, ...getColumns);
-  }
+/**
+ * 取得模型的预定义 many 关系
+ */
+export function getModelManyOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string) {
+  return Reflect.getMetadata(MANY, modelClass.prototype, propertyKey);
 }

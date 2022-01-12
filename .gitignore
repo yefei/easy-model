@@ -11,3 +11,4 @@ apidoc/
 .github/
 .env
 test/_dist/
+dist/

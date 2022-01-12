@@ -20,3 +20,21 @@ export function propertyAt(obj: { [key: number | string | symbol]: any }, path: 
   }
   return ref[last];
 }
+
+/**
+ * 简单对象复制
+ * 只支持值为数组、数据对象、基本类型
+ */
+export function simpleCopy<T>(aObject: T): T {
+  const isArray = Array.isArray(aObject);
+  const isObject = !isArray && typeof aObject === 'object';
+  if (isArray || isObject) {
+    const bObject: any = isArray ? [] : {};
+    for (const k in aObject) {
+      const v = aObject[k];
+      bObject[k] = (typeof v === 'object') ? simpleCopy(v) : v;
+    }
+    return bObject;
+  }
+  return aObject;
+}
