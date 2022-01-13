@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "prepublishOnly": "rm -fr dist && tsc",
-    "gen": "ts-node ./src/bin/zenorm.ts gen test/config.json",
+    "gen": "tsc && cross-env ZENORM_NAME=../../dist ts-node ./src/bin/zenorm.ts gen test/config.json",
     "test": "mocha"
   },
   "keywords": [
@@ -27,7 +27,9 @@
     "database"
   ],
   "devDependencies": {
+    "@types/koa": "^2.13.4",
     "@types/node": "^12.20.41",
+    "cross-env": "^7.0.3",
     "mocha": "^8.2.1",
     "mysql-easy-query": "^3.0.0",
     "mysql2": "^2.2.5",

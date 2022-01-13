@@ -4,5 +4,5 @@
   "port": 3306,
   "user": "root",
   "password": "",
-  "outputDir": "./test/_dist/"
+  "outputDir": "./test/model/"
 }
