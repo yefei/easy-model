@@ -25,7 +25,14 @@ export type ColumnList = (string | ColumnAs)[];
  * Model class
  */
 export interface ModelClass<T extends Model> {
-  new (): T;
+  /**
+   * 模型构造器
+   */
+  new (data: DataResult): T;
+
+  /**
+   * 模型设置项
+   */
   [OPTION]?: ModelOption;
 }
 
@@ -187,5 +194,5 @@ export interface QueryResult {
  * 数据库驱动必须实现的方法
  */
 export interface Query {
-  query(arg0: string | ((builder: Builder) => void)): Promise<DataResult[] | DataResult | QueryResult>;
+  query(arg0: string | ((builder: Builder) => void), params?: any): Promise<DataResult[] | DataResult | QueryResult>;
 }

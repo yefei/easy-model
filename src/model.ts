@@ -9,6 +9,7 @@ export const PKVAL = Symbol('Model#pkValue');
 export const DATA = Symbol('Model#data');
 export const JOIN = Symbol('Model#join');
 export const MANY = Symbol('Model#many');
+export const DATA_FIELDS = Symbol('Model#dataFields');
 
 export interface Model {
   /**
@@ -57,24 +58,29 @@ export function getModelOption<T extends Model>(modelClass: ModelClass<T>) {
   return modelClass[OPTION];
 }
 
-interface VirtualDescriptor {
-  get?(): any;
-  set?(v: any): void;
+/**
+ * 定义方法为数据字段，可以像数据库字段一样输出到 JSON 序列化中。
+ * 只能用于 get 方法上。
+ * 在初始化实例时会覆盖原始属性，使用新的【数据描述符】替代。
+ * 如果有定义对应的 set 方法也会被 Proxy 拦截并重新调用到原始 set 方法上。
+ * tips: 如果模型上有定义其他非 @data 类型的 set 方法内使用 this 更新数据属性会丢失无法记录目标属性的更新状态
+ */
+export function data(target: Object, propertyKey: string, descriptor: PropertyDescriptor) {
+  if (!descriptor.get) {
+    throw new Error(`the ${target.constructor.name} data property [${propertyKey}] must be get method`);
+  }
+  descriptor.configurable = true;
+  descriptor.enumerable = true;
+  const fields: PropertyDescriptorMap = Reflect.getMetadata(DATA_FIELDS, target) || {};
+  fields[propertyKey] = descriptor;
+  Reflect.defineMetadata(DATA_FIELDS, fields, target);
 }
 
 /**
- * 定义虚拟属性
+ * 取得数据字段列表
  */
-export function virtual(p: VirtualDescriptor) {
-  return function (target: Object, propertyKey: string | symbol) {
-    if (typeof propertyKey === 'symbol') {
-      throw new Error('virtual property cannot be symbol');
-    }
-    Object.defineProperty(target, propertyKey, Object.assign(p, {
-      configurable: true,
-      enumerable: true,
-    }));
-  }
+export function getDataMethods<T extends Model>(modelClass: ModelClass<T>): PropertyDescriptorMap {
+  return Reflect.getMetadata(DATA_FIELDS, modelClass.prototype);
 }
 
 /**

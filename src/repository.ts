@@ -1,6 +1,6 @@
 import { Query, ColumnList, DataValue, ModelClass, DataResult, ModelOption, QueryResult } from './types';
 import { Builder, JsonWhere } from 'sql-easy-builder';
-import { Model, UPDATE, PKVAL, DATA, getModelOption } from './model';
+import { Model, UPDATE, PKVAL, getModelOption, getDataMethods } from './model';
 import { Finder } from './finder';
 
 export class Repository<T extends Model> {
@@ -33,30 +33,46 @@ export class Repository<T extends Model> {
    */
   createInstance(data?: DataResult): T {
     if (!data) return null;
-    const properties: PropertyDescriptorMap = {
-      [PKVAL]: { value: data[this.option.pk] },
-    };
-    const dataFields = new Set();
-    for (const [key, value] of Object.entries(data)) {
-      dataFields.add(key);
-      properties[key] = {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        value,
-      };
+    const ins = new this.modelClass(data);
+    // 100000次性能对比: defineProperties[136ms] > for{defineProperty}[111.5ms] > assign[16ms]
+    Object.assign(ins, { [PKVAL]: data[this.option.pk] }, data);
+
+    // 数据方法字段
+    const dataMethods = getDataMethods(this.modelClass);
+    if (dataMethods) {
+      for (const [key, descriptor] of Object.entries(dataMethods)) {
+        // 覆盖原始属性
+        Object.defineProperty(ins, key, {
+          enumerable: true,
+          writable: !!descriptor.set,
+          value: ins[key],
+        });
+      }
     }
-    const ins = Object.create(this.modelClass.prototype, properties);
-    return new Proxy(ins, {
+
+    // 1. 拦截 set 操作，以备 save 方法的差异更新特性
+    // 2. 实现 dataMethods 的 set 方法调用
+    const proxy = new Proxy(<any> ins, {
+      // obj 是原始的 ins 对象
       set(obj, prop, value) {
-        if (dataFields.has(prop)) {
-          if (!obj[UPDATE]) obj[UPDATE] = new Set();
-          obj[UPDATE].add(prop);
+        // console.log('Proxy set:', prop, value);
+        if (typeof prop === 'string') {
+          if (prop in dataMethods) {
+            if (!dataMethods[prop].set) return false;
+            dataMethods[prop].set.call(proxy, value);
+          }
+          // 如果修改的是数据库值并且不是子实例对象
+          else if (prop in data && !(typeof obj[prop] === 'object' && Reflect.has(obj[prop], PKVAL))) {
+            if (!ins[UPDATE]) ins[UPDATE] = new Set();
+            ins[UPDATE].add(prop);
+          }
         }
         obj[prop] = value;
         return true;
       }
     });
+
+    return proxy;
   }
 
   /**
@@ -120,13 +136,14 @@ export class Repository<T extends Model> {
     const updateSet = ins[UPDATE];
     if (!updateSet || updateSet.size === 0) return;
     const data: DataResult = {};
-    updateSet.forEach(f => {
+    for (const f of updateSet) {
       data[f] = ins[f];
-    });
+    }
     const count = await this.find({ [this.option.pk]: ins[PKVAL] }).update(data);
     if (this.option.pk in data) {
       ins[PKVAL] = data[this.option.pk];
     }
+    updateSet.clear();
     return count;
   }
 

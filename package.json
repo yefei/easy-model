@@ -29,11 +29,12 @@
   "devDependencies": {
     "@types/node": "^12.20.41",
     "mocha": "^8.2.1",
-    "mysql-easy-query": "^2.0.0",
+    "mysql-easy-query": "^3.0.0",
     "mysql2": "^2.2.5",
-    "sql-easy-builder": "^2.0.2"
+    "sql-easy-builder": "^2.0.3"
   },
   "dependencies": {
+    "pascal-case": "^3.1.2",
     "reflect-metadata": "^0.1.13",
     "snake-case": "^3.0.4"
   }
