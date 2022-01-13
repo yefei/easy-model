@@ -4,8 +4,5 @@
   "port": 3306,
   "user": "root",
   "password": "",
-  "optionsDir": "test/models_options",
-  "typingFile": "test/_dist/models.d.ts",
-  "modelsFile": "test/_dist/models.js",
-  "declareQueriesToModule": "koa.Context.model"
+  "outputDir": "./test/_dist/"
 }

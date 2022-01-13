@@ -8,18 +8,7 @@ import { generate } from '../generate';
 function getConfig() {
   const configFile = path.join(process.cwd(), process.argv[3]);
   const config = require(configFile);
-  const optionsDir = path.resolve(process.cwd(), config.optionsDir || 'models_options');
-  const typingFile = path.resolve(process.cwd(), config.typingFile || 'models.d.ts');
-  const modelsFile = path.resolve(process.cwd(), config.modelsFile || 'models.js');
-  // let tsRelative = path.relative(modelsFile, tsFile).replace(/\\/g, '/').substring(3);
-  // if (!tsRelative.startsWith('../')) tsRelative = `./${tsRelative}`;
-  // tsRelative = tsRelative.slice(0, -5); // remove .d.ts
-  return {
-    ...config,
-    optionsDir,
-    typingFile,
-    modelsFile,
-  };
+  return config;
 }
 
 function getQuery(config: mysql.ConnectionOptions) {

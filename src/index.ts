@@ -1,6 +1,8 @@
 import { Model } from './model';
 import { Repository } from './repository';
 import { ModelClass, Query } from './types';
+export * from './model';
+export * from './repository';
 
 /**
  * 创建一个仓库查询对象

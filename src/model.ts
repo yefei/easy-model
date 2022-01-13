@@ -48,11 +48,9 @@ export function model(option?: ModelOption) {
  */
 export function getModelOption<T extends Model>(modelClass: ModelClass<T>) {
   if (!modelClass[OPTION]) {
-    const name = modelClass.name;
     modelClass[OPTION] = {
       pk: 'id',
-      name,
-      table: snakeCase(name),
+      table: snakeCase(modelClass.name),
     };
   }
   return modelClass[OPTION];

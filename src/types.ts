@@ -4,7 +4,7 @@ import { MODEL, Model, OPTION } from "./model";
 /**
  * 数据库结果类型
  */
-export type DataValue = string | number | boolean | Date;
+export type DataValue = any;
 
 /**
  * 数据库查询结果对象
@@ -127,7 +127,7 @@ export interface ModelOption {
   /**
    * 模型名，默认表名，关联关系中不可重复
    */
-  name?: string;
+  // name?: string;
 
   /**
    * 表名，默认取自 name

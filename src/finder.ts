@@ -188,10 +188,10 @@ export class Finder<T extends Model> {
     const opt = getModelOption(joinModel);
     option = Object.assign({
       from: this._repository.option.table,
-      fk: opt.name + '_' + opt.pk,
+      fk: opt.table + '_' + opt.pk,
       ref: this._repository.option.pk,
       type: 'INNER',
-      as: opt.name,
+      as: opt.table,
       asList: false,
     }, option);
     this._checkAsName(option.as);
@@ -238,7 +238,7 @@ export class Finder<T extends Model> {
     }
     const targetModelOpt = getModelOption(target);
     option = Object.assign({
-      fk: targetModelOpt.name + '_' + targetModelOpt.pk,
+      fk: targetModelOpt.table + '_' + targetModelOpt.pk,
       ref: this._repository.option.pk,
       parallel: false,
     }, option);
@@ -461,7 +461,7 @@ export class Finder<T extends Model> {
       return result.value;
     }
     if (defaultValue === undefined) {
-      throw new DoesNotExist(`The requested object '${this._repository.option.name}' does not exist.`);
+      throw new DoesNotExist(`The requested object '${this._repository.option.table}' does not exist.`);
     }
     return defaultValue;
   }
