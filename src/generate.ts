@@ -5,9 +5,6 @@ import { snakeCase } from 'snake-case';
 import { DataResult, Query } from './types';
 
 const zenormName = process.env.ZENORM_NAME || 'zenorm';
-const codeRegionStart = '// #region auto generate code';
-const codeRegionEnd = '// #endregion auto generate code';
-const codeRegionTip = '// 此区域内代码请不要编辑，会在下次更新数据库结构时被覆盖';
 
 function getColumnType(type: string) {
   if (type.search(/timestamp|datetime|date/i) != -1) return 'Date';
@@ -53,6 +50,13 @@ interface GenerateConfig {
   outputDir?: string;
 
   /**
+   * 生成数据库表结构文件名
+   * 此文件每次生成都会被重新改写
+   * @default '_tables'
+   */
+  tablesFilename?: string;
+
+  /**
    * 生成 Queries 文件名
    * 此文件每次生成都会被重新改写
    * @default '_queries'
@@ -68,6 +72,7 @@ interface GenerateConfig {
 
 const defaultConfig: GenerateConfig = {
   outputDir: './src/model',
+  tablesFilename: '_tables',
   queriesFilename: '_queries',
   declareQueriesToModules: ['koa.DefaultContext.model'],
 }
@@ -84,15 +89,15 @@ export async function generate(query: Query, config: GenerateConfig) {
 
   const tables = <DataResult[]> await query.query('SHOW TABLES');
   const remark = [
+    '// zenorm 自动生成文件',
+    '// 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖',
     `// create at: ${datetime()}`,
     `// create by: ${process.env.USER || process.env.USERNAME || '-'}@${process.env.COMPUTERNAME || '-'}`,
     `// database: ${database}`,
   ];
 
-  const imports: string[] = [];
-  const exports: string[] = [];
-  const queries: string[] = [];
-  const queryProps: string[] = [];
+  const structs: string[] = [...remark];
+  const models: string[][] = [];
 
   for (const t of tables) {
     const tableName = <string> t[`Tables_in_${database}`];
@@ -100,110 +105,79 @@ export async function generate(query: Query, config: GenerateConfig) {
     const name = snakeCase(tableName);
     const outputFilename = path.join(outputDir, name + '.ts');
     console.log('table:', tableName);
-    
+
+    structs.push(`export class ${className}Table {`);
     let pk: string;
-    let ts: string[] = [];
     const columns = <DataResult[]> await query.query('SHOW FULL COLUMNS FROM ??', [tableName]);
     for (const c of columns) {
       if (!pk && c.Key === 'PRI') pk = c.Field;
-      ts.push(`  /**`);
-      c.Comment && ts.push(`   * ${c.Comment}`);
-      ts.push(`   * ${c.Type} ${c.Extra}`);
-      ts.push(`   */`);
-      ts.push(`  ${c.Field}?: ${getColumnType(<string> c.Type)};`);
+      structs.push(`  /**`);
+      c.Comment && structs.push(`   * ${c.Comment}`);
+      structs.push(`   * ${c.Type} ${c.Extra}`);
+      structs.push(`   */`);
+      structs.push(`  ${c.Field}?: ${getColumnType(<string> c.Type)};`);
     }
+    structs.push('}');
+    structs.push('');
 
-    if (await fileExists(outputFilename)) {
-      const content = await fs.readFile(outputFilename, 'utf-8');
-      const startIndex = content.indexOf(codeRegionStart);
-      if (startIndex === -1) {
-        console.warn('无法找到:', codeRegionStart, '跳过更新', outputFilename);
-        continue;
-      }
-      const endIndex = content.substring(startIndex).indexOf(codeRegionEnd);
-      if (endIndex === -1) {
-        console.warn('无法找到:', codeRegionEnd, '跳过更新', outputFilename);
-        continue;
-      }
-      ts = [
-        content.substring(0, startIndex + codeRegionStart.length),
-        '  ' + codeRegionTip,
-        `  // update at: ${datetime()}`,
-        ...ts,
-        '  ' + content.substring(startIndex + endIndex),
-      ];
-    } else {
-      ts = [
-        ...remark,
-        '// table: ' + tableName,
-        '',
+    if (!await fileExists(outputFilename)) {
+      const ts: string[] = [
         `import { model } from '${zenormName}';`,
+        `import { ${className}Table } from './${config.tablesFilename}';`,
         '',
         `@model({`,
         `  pk: '${pk}',`,
         `  table: '${tableName}',`,
         `})`,
-        `export default class ${className} {`,
-        '  ' + codeRegionStart,
-        '  ' + codeRegionTip,
-        ...ts,
-        '  ' + codeRegionEnd,
+        `export default class ${className} extends ${className}Table {`,
         `}`,
         '',
       ];
+      await fs.writeFile(outputFilename, ts.join('\n'));
     }
 
-    await fs.writeFile(outputFilename, ts.join('\n'));
-
-    // queries
-    imports.push(`import ${className} from './${name}'`);
-    exports.push(className);
-    queries.push(`export const ${className}Query = createRepositoryQuery(${className});`);
-    queryProps.push(`  get ${name}() { return ${className}Query(this._query); }`);
+    models.push([name, className]);
   }
 
-  const ts: string[] = [
-    '// zenorm 自动生成文件',
-    '// 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖',
+  const tablesFilename = path.join(outputDir, config.tablesFilename + '.ts');
+  console.log(`write tables file: ${tablesFilename}`);
+  await fs.writeFile(tablesFilename, structs.join('\n'));
+
+  const queries: string[] = [
     ...remark,
-    '',
     `import { Query, createRepositoryQuery } from '${zenormName}';`,
-    ...imports,
+    ...models.map(([name, className]) => `import ${className} from './${name}'`),
     '',
-    ...queries,
+    ...models.map(([name, className]) => `export const ${className}Query = createRepositoryQuery(${className});`),
     '',
+    `export class Queries {`,
+    `  _query: Query;`,
+    `  constructor(query: Query) { this._query = query; }`,
+    ...models.map(([name, className]) => `  get ${name}() { return ${className}Query(this._query); }`),
+    `}`,
+    '',
+    'export {',
+    ...models.map(([name, className]) => `  ${className},`),
+    '};',
+    ''
   ];
-
-  // queries
-  ts.push(`export class Queries {`);
-  ts.push(`  _query: Query;`);
-  ts.push(`  constructor(query: Query) { this._query = query; }`);
-  ts.push(...queryProps);
-  ts.push(`}`);
-  ts.push(``);
-
-  // exports
-  ts.push('export {');
-  ts.push('  ' + exports.join(',\n  '));
-  ts.push('};');
-  ts.push('');
 
   // 添加 Queries 到目标模块中
   if (config.declareQueriesToModules) {
     for (const mod of config.declareQueriesToModules) {
       const _m = mod.split('.');
-      ts.push(`declare module '${_m[0]}' {`);
-      ts.push(`  interface ${_m.slice(1, -1).join('.')} {`);
-      ts.push(`    ${_m[_m.length - 1]}: Queries;`);
-      ts.push(`  }`);
-      ts.push(`}`);
-      ts.push(``);
+      queries.push(`declare module '${_m[0]}' {`);
+      queries.push(`  interface ${_m.slice(1, -1).join('.')} {`);
+      queries.push(`    ${_m[_m.length - 1]}: Queries;`);
+      queries.push(`  }`);
+      queries.push(`}`);
+      queries.push(``);
     }
   }
 
   const queriesFilename = path.join(outputDir, config.queriesFilename + '.ts');
   console.log(`write queries file: ${queriesFilename}`);
-  await fs.writeFile(queriesFilename, ts.join('\n'));
+  await fs.writeFile(queriesFilename, queries.join('\n'));
 
   // 生成 index.ts
   const indexFilename = path.join(outputDir, 'index.ts');

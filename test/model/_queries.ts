@@ -1,9 +1,8 @@
 // zenorm 自动生成文件
 // 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖
-// create at: 2022-1-13 11:43:26 ├F10: PM┤
-// create by: YeFei@DESKTOP-B7B4E7I
-// database: test
-
+// create at: 2022-1-14 10:41:03 ├F10: AM┤
+// create by: yefei@-
+// database: zenorm_test
 import { Query, createRepositoryQuery } from '../../dist';
 import Message from './message'
 import Nonautopk from './nonautopk'
@@ -28,7 +27,7 @@ export {
   Message,
   Nonautopk,
   Profile,
-  User
+  User,
 };
 
 declare module 'koa' {
