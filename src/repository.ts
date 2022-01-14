@@ -94,14 +94,14 @@ export class Repository<T extends Model> {
   /**
    * 查询条数
    */
-  count(where: JsonWhere, column: string) {
+  count(where?: JsonWhere, column?: string) {
     return this.find(where).count(column);
   }
 
   /**
    * 通过条件查询数据是否存在
    */
-  exists(where: JsonWhere) {
+  exists(where?: JsonWhere) {
     return this.find(where).exists();
   }
 

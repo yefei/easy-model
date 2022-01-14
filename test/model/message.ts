@@ -1,4 +1,4 @@
-import { model } from '../../dist';
+import { model } from '../../src';
 import { MessageTable } from './_tables';
 
 @model({

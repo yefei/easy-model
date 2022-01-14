@@ -1,4 +1,4 @@
-import { data, join, many, model } from '../../dist';
+import { data, join, many, model } from '../../src';
 import { UserTable } from './_tables';
 import Message from './message';
 import Profile from './profile';
@@ -8,7 +8,7 @@ import Profile from './profile';
   table: 'user',
 })
 export default class User extends UserTable {
-  @join(Profile)
+  @join(Profile, { fk: 'id', ref: 'user_id' })
   profile?: Profile;
 
   @join(Message)

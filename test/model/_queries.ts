@@ -1,9 +1,9 @@
 // zenorm 自动生成文件
 // 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖
-// create at: 2022-1-14 11:27:46 ├F10: AM┤
+// create at: 2022-1-14 4:00:25 ├F10: PM┤
 // create by: yefei@-
 // database: zenorm_test
-import { Query, createRepositoryQuery } from '../../dist';
+import { Query, createRepositoryQuery } from '../../src';
 import Message from './message'
 import Nonautopk from './nonautopk'
 import Profile from './profile'

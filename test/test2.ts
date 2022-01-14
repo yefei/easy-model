@@ -3,6 +3,7 @@ import { PoolQuery } from 'mysql-easy-query';
 import { model, join, many, data, Model } from "../src/model";
 import { Repository } from "../src/repository";
 import { Query } from '../src/types';
+import { UserQuery } from './model';
 
 const pool = mysql.createPool({
   host: '127.0.0.1',
@@ -72,6 +73,7 @@ class User {
 const repo = new Repository(User, query);
 
 async function main() {
+  /*
   console.log(User.prototype);
   console.log(Object.getOwnPropertyNames(User.prototype));
   console.log(Object.getOwnPropertyDescriptor(User.prototype, 'age'));
@@ -102,6 +104,10 @@ async function main() {
   res.id = res.id === 3 ? 100001 : 3;
   await repo.save(res);
   console.log(res);
+  */
+
+  const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').get();
+  console.log(joinRes);
 
   return;
 

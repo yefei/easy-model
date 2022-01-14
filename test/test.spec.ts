@@ -23,76 +23,81 @@ function jsonEq(a: any, b: any) {
 }
 
 const userData = { id: 1, name: 'yf', birthday: new Date(new Date().getFullYear() - 35, 11, 11) };
-
-conn.setMockData("INSERT INTO `user` ( `name`, `age` ) VALUES ( ?, ? )", [ 'yf', 11 ], { insertId: 1 });
-conn.setMockData('SELECT * FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [userData]);
-conn.setMockData('SELECT `name` FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [{ name: 'yf' }]);
+const profileData = { id: 2, user_id: 1, edu: 'a', work: 'b' };
 
 describe('Model', function() {
 
+  conn.setMockData("INSERT INTO `user` ( `name`, `age` ) VALUES ( ?, ? )", [ 'yf', 11 ], { insertId: 1 });
   it('create', async function() {
     const id = await UserQuery(query).create({ name: 'yf', age: 11 });
     assert.ok(id === 1);
   });
 
+  conn.setMockData('SELECT * FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [userData]);
   it('findByPk', async function() {
     const ins = await UserQuery(query).findByPk(1);
     jsonEq(ins, { ...userData, age: 35 });
   });
 
+  conn.setMockData('SELECT `name` FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [{ name: 'yf' }]);
   it('findByPk(...columns)', async function() {
     const ins = await UserQuery(query).findByPk(1, 'name');
     jsonEq(ins, { name: 'yf' });
   });
 
-  return;
-
-  it('find', async function() {
+  conn.setMockData('SELECT * FROM `user`', null, [userData]);
+  it('all', async function() {
     const ins = await UserQuery(query).find().all();
-    assert.ok(ins.length);
+    jsonEq(ins, [{ ...userData, age: 35 }]);
   });
 
+  conn.setMockData('SELECT COUNT(*) AS `c` FROM `user`', null, { c: 1 });
   it('count', async function() {
-    const ins = await UserQuery(query).count();
-    assert.ok(typeof ins === 'number');
+    const count = await UserQuery(query).count();
+    eq(count, 1);
   });
 
-  it('finder.count()', async function() {
-    const ins = await UserQuery(query).find().count();
-    assert.ok(typeof ins === 'number');
-  });
-
+  conn.setMockData('SELECT COUNT(`id`) AS `c` FROM `user`', null, { c: 1 });
+  conn.setMockData('SELECT COUNT(DISTINCT `id`) AS `c` FROM `user`', null, { c: 1 });
   it('finder.count(AB)', async function() {
-    let ins = await UserQuery(query).find().count('id');
-    assert.ok(typeof ins === 'number');
-    ins = await UserQuery(query).find().count(AB.SQL`DISTINCT {id}`);
-    assert.ok(typeof ins === 'number');
+    let count = await UserQuery(query).find().count('id');
+    eq(count, 1);
+    count = await UserQuery(query).find().count(AB.SQL`DISTINCT {id}`);
+    eq(count, 1);
   });
 
+  conn.setMockData('SELECT 1 FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], { 1: 1 });
   it('exists', async function() {
-    eq(await UserQuery(query).exists({ id }), true);
+    eq(await UserQuery(query).exists({ id: 1 }), true);
     eq(await UserQuery(query).exists({ id: -1 }), false);
   });
 
+  conn.setMockData('UPDATE `user` SET `name` = ?, `age` = ? WHERE `id` = ?', [ 'yf', 11, 1 ], { affectedRows: 1 });
   it('update', async function() {
-    const ins = await UserQuery(query).find({ id }).update({ name: 'yefei', age: 11 });
+    const ins = await UserQuery(query).find({ id: 1 }).update({ name: 'yf', age: 11 });
     eq(ins, 1);
-    eq((await UserQuery(query).findByPk(id)).name, 'yefei');
+    eq((await UserQuery(query).findByPk(1)).name, 'yf');
   });
 
+  conn.setMockData('SELECT * FROM `message` ORDER BY `id` DESC', null, [{ content: 'abc' }]);
   it('options.order', async function() {
-    const users = await UserWithOrder(query).find().all();
+    const res = await MessageQuery(query).find().all();
+    jsonEq(res, [{ content: 'abc' }]);
   });
 
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` AS `p` ON (`p`.`user_id` = `user`.`id`)', null, {
+    user: userData,
+    profile: profileData,
+  });
   it('join', async function() {
     const user = await UserQuery(query).find().join(Profile, {
       fk: 'id',
       ref: 'user_id',
       as: 'p',
     }).get();
-    assert.ok(typeof user.save === 'function');
-    assert.ok(typeof user.p.save === 'function');
+    console.log(user);
   });
+  return;
 
   it('join("define")', async function() {
     const user = await UserQuery(query).find().join('profile').get();

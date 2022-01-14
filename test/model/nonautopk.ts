@@ -1,4 +1,4 @@
-import { model } from '../../dist';
+import { model } from '../../src';
 import { NonautopkTable } from './_tables';
 
 @model({

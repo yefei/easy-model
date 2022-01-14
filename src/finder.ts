@@ -1,6 +1,6 @@
 import { propertyAt, simpleCopy } from './utils';
 import { DoesNotExist, UndefinedRelationException } from './excepts';
-import { Builder, JsonWhere } from 'sql-easy-builder';
+import { AttrBuilder, Builder, FieldType, JsonWhere, ValueType } from 'sql-easy-builder';
 import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, PageOption, PageResult, QueryResult } from './types';
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
 import { Repository } from './repository';
@@ -322,7 +322,7 @@ export class Finder<T extends Model> {
       // 在有 join 的情况下如果没有指定目标表则默认使用当前表
       builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
       builder.from(this._repository.option.table);
-      this._joinBuilder(builder);
+      isJoin && this._joinBuilder(builder);
       this._whereBuilder(builder);
       this._groupBuilder(builder);
       this._orderBuilder(builder);
@@ -404,14 +404,68 @@ export class Finder<T extends Model> {
   }
   */
 
+  _joinResult(resutls: DataResult[]) {
+    // 合并 join 结果到 instance 中
+    const instanceMap = new Map<DataValue, T>();
+    // 处理列表结果
+    resutls.forEach(row => {
+      // 多条结果 join 结果组合
+      const mainName = this._repository.option.table;
+      const thisData = row[mainName];
+      const pkval = thisData[this._repository.option.pk];
+      if (pkval === undefined) {
+        throw new Error(`join select missing primary key of '${mainName}' table`);
+      }
+      if (!instanceMap.has(pkval)) {
+        instanceMap.set(pkval, this._repository.createInstance(thisData));
+      }
+      const instance = instanceMap.get(pkval);
+      Object.values(this._join).forEach(options => {
+        const model = options[MODEL];
+        const modelOption = getModelOption(model);
+        const _asPath = options.as.split('->');
+        const data = row[options.as];
+        if (data) {
+          // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
+          if (options.type.startsWith('LEFT')) {
+            if (data[modelOption.pk] === undefined) {
+              throw new Error(`left join select missing primary key of '${options.as}' table`);
+            }
+            // 没有结果跳过
+            if (data[modelOption.pk] === null) {
+              return;
+            }
+          }
+          // 有 join 结果再初始化 as 对象
+          if (propertyAt(instance, _asPath) === undefined) {
+            propertyAt(instance, _asPath, options.asList ? [] : {});
+          }
+          // 设置数据到 as 对象中
+          const joinInstance = this._repository.createInstance(data);
+          if (options.asList) {
+            propertyAt(instance, _asPath).push(joinInstance);
+          } else {
+            propertyAt(instance, _asPath, joinInstance);
+          }
+        }
+      });
+      // 合并其他非表结构数据到主数据中
+      if (typeof row[''] === 'object') {
+        Object.entries(row['']).forEach(([key, value]) => {
+          propertyAt(instance, key.split('->'), value);
+        });
+      }
+    });
+    return instanceMap;
+  }
+
   /**
    * 取得数据列表
    */
-  /*
   async all(...columns: ColumnList): Promise<T[]> {
-    return <T[]> await this._fetch(columns, false);
+    const resutl = <DataResult[]> await this._fetchResult(false, columns);
+    return resutl.map(row => this._repository.createInstance(row));
   }
-  */
 
   /**
    * 取得一条数据
@@ -419,7 +473,7 @@ export class Finder<T extends Model> {
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
     if (Array.isArray(resutl)) {
-      return null;
+      return this._joinResult(resutl).values().next().value;
     }
     return this._repository.createInstance(resutl);
   }
@@ -445,7 +499,7 @@ export class Finder<T extends Model> {
    * @param column
    * @param defaultValue 如果找不到返回的默认值，不指定则抛出异常 DoesNotExist
    */
-  async value<D>(column: string, defaultValue?: D): Promise<DataValue | D> {
+  async value<D>(column: FieldType, defaultValue?: D): Promise<DataValue | D> {
     const result = <DataResult> await this._repository.query(builder => {
       builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
       builder.from(this._repository.option.table);
@@ -468,7 +522,7 @@ export class Finder<T extends Model> {
   /**
    * 查询条数
    */
-  async count(column = '*') {
+  async count(column: FieldType = '*') {
     const result = <DataResult> await this._repository.query(builder => {
       builder.count(column, 'c');
       builder.from(this._repository.option.table);
