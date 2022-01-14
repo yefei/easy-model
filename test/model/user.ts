@@ -9,13 +9,13 @@ import Profile from './profile';
 })
 export default class User extends UserTable {
   @join(Profile)
-  profile: Profile;
+  profile?: Profile;
 
   @join(Message)
-  messages: Message[];
+  messages?: Message[];
 
   @many(Message)
-  messageList: Message[];
+  messageList?: Message[];
 
   @data
   get age() {

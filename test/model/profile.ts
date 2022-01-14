@@ -8,5 +8,5 @@ import User from './user';
 })
 export default class Profile extends ProfileTable {
   @join(User)
-  user: User;
+  user?: User;
 }

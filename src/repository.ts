@@ -109,7 +109,7 @@ export class Repository<T extends Model> {
    * 创建一条数据
    * @returns 主键值
    */
-  async create(data: DataResult): Promise<DataValue> {
+  async create(data: T): Promise<DataValue> {
     const r = <QueryResult> await this.query(builder => {
       builder.insert(this.option.table, data);
     });
@@ -120,7 +120,7 @@ export class Repository<T extends Model> {
   /**
    * 创建一条数据并返回数据
    */
-  async createAndGet(data: DataResult, ...getColumns: ColumnList) {
+  async createAndGet(data: T, ...getColumns: ColumnList) {
     const pk = await this.create(data);
     return this.findByPk(pk, ...getColumns);
   }

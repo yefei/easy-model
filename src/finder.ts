@@ -418,7 +418,6 @@ export class Finder<T extends Model> {
    */
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
-    console.log({ resutl });
     if (Array.isArray(resutl)) {
       return null;
     }

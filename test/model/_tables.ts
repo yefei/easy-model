@@ -1,64 +1,103 @@
 // zenorm 自动生成文件
 // 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖
-// create at: 2022-1-14 10:41:03 ├F10: AM┤
+// create at: 2022-1-14 11:27:46 ├F10: AM┤
 // create by: yefei@-
 // database: zenorm_test
 export class MessageTable {
   /**
-   * int(11) auto_increment
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
+   * extra: auto_increment
    */
   id?: number;
   /**
-   * int(11) 
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
    */
-  user_id?: number;
+  user_id: number;
   /**
-   * varchar(255) 
+   * type: varchar(255)
+   * collation: utf8_general_ci
+   * null: YES
+   * default: null
    */
   content?: string;
 }
 
 export class NonautopkTable {
   /**
-   * int(11) 
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
    */
-  id?: number;
+  id: number;
   /**
-   * varchar(255) 
+   * type: varchar(255)
+   * collation: utf8_general_ci
+   * null: YES
+   * default: null
    */
   name?: string;
 }
 
 export class ProfileTable {
   /**
-   * int(11) auto_increment
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
+   * extra: auto_increment
    */
   id?: number;
   /**
-   * int(11) 
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
    */
-  user_id?: number;
+  user_id: number;
   /**
-   * varchar(255) 
+   * type: varchar(255)
+   * collation: utf8_general_ci
+   * null: YES
+   * default: null
    */
   edu?: string;
   /**
-   * varchar(255) 
+   * type: varchar(255)
+   * collation: utf8_general_ci
+   * null: YES
+   * default: null
    */
   work?: string;
 }
 
 export class UserTable {
   /**
-   * int(11) auto_increment
+   * type: int(11)
+   * collation: null
+   * null: NO
+   * default: null
+   * extra: auto_increment
    */
   id?: number;
   /**
-   * varchar(255) 
+   * type: varchar(255)
+   * collation: utf8_general_ci
+   * null: NO
+   * default: null
    */
-  name?: string;
+  name: string;
   /**
-   * date 
+   * type: date
+   * collation: null
+   * null: YES
+   * default: null
    */
   birthday?: Date;
 }

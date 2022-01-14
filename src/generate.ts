@@ -111,11 +111,16 @@ export async function generate(query: Query, config: GenerateConfig) {
     const columns = <DataResult[]> await query.query('SHOW FULL COLUMNS FROM ??', [tableName]);
     for (const c of columns) {
       if (!pk && c.Key === 'PRI') pk = c.Field;
+      const required = c.Null === 'NO' && c.Default === null && c.Extra !== 'auto_increment';
       structs.push(`  /**`);
       c.Comment && structs.push(`   * ${c.Comment}`);
-      structs.push(`   * ${c.Type} ${c.Extra}`);
+      structs.push(`   * type: ${c.Type}`);
+      structs.push(`   * collation: ${c.Collation}`);
+      structs.push(`   * null: ${c.Null}`);
+      structs.push(`   * default: ${c.Default}`);
+      c.Extra && structs.push(`   * extra: ${c.Extra}`);
       structs.push(`   */`);
-      structs.push(`  ${c.Field}?: ${getColumnType(<string> c.Type)};`);
+      structs.push(`  ${c.Field}${required ? '' : '?'}: ${getColumnType(<string> c.Type)};`);
     }
     structs.push('}');
     structs.push('');
