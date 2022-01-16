@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { snakeCase } from 'snake-case';
-import { DataValue, DataResult, ModelClass, ManyOption, DefineJoinOption, JoinOption, ModelOption } from './types';
+import { DataValue, DataResult, ModelClass, ManyOption, DefineJoinOption, JoinOption, ModelOption, DefineManyOption } from './types';
 
 export const MODEL = Symbol('Model#model');
 export const OPTION = Symbol('Model#option');
@@ -102,14 +102,14 @@ export function join<T extends Model>(modelClass: ModelClass<T>, option?: Define
 /**
  * 取得模型的预定义 join 关系
  */
-export function getModelJoinOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string) {
+export function getModelJoinOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string): DefineJoinOption<T> {
   return Reflect.getMetadata(JOIN, modelClass.prototype, propertyKey);
 }
 
 /**
  * 预定义 many 关系
  */
-export function many<T extends Model>(modelClass: ModelClass<T>, option?: ManyOption<T>) {
+export function many<T extends Model>(modelClass: ModelClass<T>, option?: DefineManyOption<T>) {
   return function (target: Object, propertyKey: string | symbol) {
     if (typeof propertyKey === 'symbol') {
       throw new Error('many property cannot be symbol');
@@ -125,6 +125,6 @@ export function many<T extends Model>(modelClass: ModelClass<T>, option?: ManyOp
 /**
  * 取得模型的预定义 many 关系
  */
-export function getModelManyOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string) {
+export function getModelManyOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string): DefineManyOption<T> {
   return Reflect.getMetadata(MANY, modelClass.prototype, propertyKey);
 }

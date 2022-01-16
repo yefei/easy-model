@@ -1,4 +1,5 @@
 import { Builder, JsonWhere } from "sql-easy-builder";
+import { FINDER, Finder } from "./finder";
 import { MODEL, Model, OPTION } from "./model";
 
 /**
@@ -102,6 +103,24 @@ export type DefineJoinOption<T extends Model> = JoinOption<T> & { as?: never, as
  */
 export interface ManyOption<T extends Model> extends RelationOption<T> {
   /**
+   * 查找器
+   * 隐含属性
+   */
+  [FINDER]?: Finder<T>;
+
+  /**
+   * 自定义查询规则
+   * 默认创建一个新的 finder
+   */
+  finder?: (finder: Finder<T>) => void;
+
+  /**
+   * 自定义查询连接
+   * 默认使用主表 query
+   */
+  query?: Query;
+
+  /**
    * 需要的结果列
    * @default '*'
    */
@@ -109,10 +128,16 @@ export interface ManyOption<T extends Model> extends RelationOption<T> {
 
   /**
    * 是否使用并行查询
+   * 作用于 finder 中未指定 limit 时
    * @default false
    */
   parallel?: boolean;
 }
+
+/**
+ * 预定义 many
+ */
+export type DefineManyOption<T extends Model> = ManyOption<T> & { as?: never };
 
 /**
  * 模型设置

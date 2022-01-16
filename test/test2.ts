@@ -1,9 +1,7 @@
 import * as mysql from 'mysql2';
 import { PoolQuery } from 'mysql-easy-query';
-import { model, join, many, data, Model } from "../src/model";
-import { Repository } from "../src/repository";
 import { Query } from '../src/types';
-import { UserQuery } from './model';
+import { UserQuery, User } from './model';
 import { createInstance } from '../src/instance';
 
 const pool = mysql.createPool({
@@ -14,64 +12,6 @@ const pool = mysql.createPool({
 });
 
 const query = <Query> new PoolQuery(pool);
-
-class Profile {
-  name: string;
-}
-
-class Message {}
-
-@model()
-class User {
-  id: number;
-
-  name: string;
-
-  birthday: Date;
-
-  @join(Profile)
-  profile: Profile;
-
-  @many(Message)
-  messages: Message[];
-
-  desc: string = "123456";
-
-  // constructor(data: DataResult) {
-  //   console.log('user init', data);
-  // }
-
-  // constructor() {}
-
-  @data
-  get age() {
-    return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
-  }
-
-  set age(v) {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - v, 1, 1);
-    this.birthday = date;
-  }
-
-  setName(newName: string) {
-    this.name = newName;
-  }
-
-  get name2() {
-    return '没用的name2';
-  }
-
-  /**
-   * 下面是错误的使用方法
-   * 因为 set 中的 this 已经被拦截到原始对象中，再去使用 this.name 修改值无法再次被拦截处理，否则会出现死循环
-   */
-  set name2(newName: string) {
-    this.name = newName;
-  }
-}
-
-const repo = new Repository(User, query);
 
 async function main() {
   /*
@@ -107,7 +47,7 @@ async function main() {
   console.log(res);
   */
 
-  const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').get();
+  const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').many('messageList').get();
   console.log(joinRes);
 
   return;

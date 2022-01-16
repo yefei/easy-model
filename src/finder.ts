@@ -5,6 +5,8 @@ import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, Mo
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
 import { createInstance } from './instance';
 
+export const FINDER = Symbol('Finder');
+
 /**
  * Finder
  */
@@ -26,7 +28,12 @@ export class Finder<T extends Model> {
     this._option = getModelOption(modelClass);
   }
 
-  protected _clone(finder: Finder<T>) {
+  /**
+   * 复制当前 finder 实例
+   * @param finder 复制入的目标，默认为新实例
+   */
+  clone(finder?: Finder<T>) {
+    finder = finder || new Finder<T>(this._modelClass);
     finder._where = simpleCopy(this._where);
     finder._whereAndOr = simpleCopy(this._whereAndOr);
     finder._limit = this._limit;
@@ -37,14 +44,6 @@ export class Finder<T extends Model> {
     finder._group = simpleCopy(this._group);
     finder._having = simpleCopy(this._having);
     return finder;
-  }
-
-  /**
-   * 复制当前 finder 实例
-   */
-  clone() {
-    const finder = new Finder<T>(this._modelClass);
-    return this._clone(finder);
   }
 
   /**
@@ -76,7 +75,14 @@ export class Finder<T extends Model> {
    */
   protected _whereBuilder(builder: Builder) {
     if (this._where) builder.where(this._where);
-    this._whereAndOr.forEach(args => builder.where(...args));
+    if (this._whereAndOr.length) {
+      if (this._where) {
+        this._whereAndOr.forEach(args => builder.where(...args));
+      } else {
+        builder.where(this._whereAndOr[0][0]);
+        this._whereAndOr.slice(1).forEach(args => builder.where(...args));
+      }
+    }
   }
 
   /**
@@ -110,7 +116,7 @@ export class Finder<T extends Model> {
     // 没有指定排序得情况下使用默认 order
     if (defaultOrder.length > 0) {
       // 没有 join 直接使用默认 order
-      if (Object.keys(this._join).length === 0) {
+      if (!this._haveJoin) {
         builder.order(...defaultOrder);
         return;
       }
@@ -178,6 +184,10 @@ export class Finder<T extends Model> {
     return this;
   }
 
+  protected get _haveJoin() {
+    return Object.keys(this._join).length > 0;
+  }
+
   /**
    * 取得预定义 join 项的配置
    */
@@ -240,18 +250,27 @@ export class Finder<T extends Model> {
       if (!opt) {
         throw new UndefinedRelationException(`${this._modelClass.name} many ${target}`);
       }
-      option = Object.assign({}, opt, option);
+      option = Object.assign({}, option, opt);
       target = option[MODEL];
+      if (option.finder) {
+        var finder = new Finder(target);
+        option.finder(finder);
+      }
     }
-    const targetModelOpt = getModelOption(target);
-    option = Object.assign({
-      fk: targetModelOpt.table + '_' + targetModelOpt.pk,
+    const defaultOption: ManyOption<M> = {
+      [FINDER]: finder || new Finder(target),
+      fk: this._option.table + '_' + this._option.pk,
       ref: this._option.pk,
       parallel: false,
-    }, option);
+    };
+    option = Object.assign(defaultOption, option);
     this._checkAsName(option.as);
     this._many[option.as] = option;
     return this;
+  }
+
+  protected get _haveMany() {
+    return Object.keys(this._many).length > 0;
   }
 
   /**
@@ -279,57 +298,13 @@ export class Finder<T extends Model> {
     }
   }
 
-  /*
-  async _fetchAfter(resutl: DataResult | DataResult[]): Promise<T> {
-    const many = Object.values(this._many);
-    for (const opt of many) {
-      // 查询结果
-      const path = opt.ref.split('.');
-      const _asPath = (opt.as || model[OPTIONS].name).split('->');
-      const _fetchManyResult = async instance => {
-        const refValue = propertyAt(instance, path);
-        let manyResults;
-        if (refValue !== undefined) {
-          const _finder = finder.clone();
-          const _where = { [opt.fk]: refValue };
-          if (_finder._where) {
-            _finder.whereAnd(_where);
-          } else {
-            _finder.where(_where);
-          }
-          if (Array.isArray(opt.columns)) {
-            manyResults = await _finder.all(...opt.columns);
-          } else if (typeof opt.columns === 'object') {
-            manyResults = await _finder.all(opt.columns);
-          } else {
-            manyResults = await _finder.all();
-          }
-        }
-        propertyAt(instance, _asPath, manyResults || []);
-      };
-      if (Array.isArray(result)) {
-        if (opt.parallel) {
-          await Promise.all(result.map(_fetchManyResult));
-        } else {
-          for (const instance of result) {
-            await _fetchManyResult(instance);
-          }
-        }
-      } else {
-        await _fetchManyResult(this._repository.createInstance(resutl));
-      }
-    }
-    return ins;
-  }
-  */
-
-  protected _joinResult(resutls: DataResult[]) {
+  protected _joinResultsMerge(resutls: DataResult[]) {
+    const mainName = this._option.table;
     // 合并 join 结果到 instance 中
     const instanceMap = new Map<DataValue, T>();
     // 处理列表结果
     resutls.forEach(row => {
       // 多条结果 join 结果组合
-      const mainName = this._option.table;
       const thisData = row[mainName];
       const pkval = thisData[this._option.pk];
       if (pkval === undefined) {
@@ -338,48 +313,52 @@ export class Finder<T extends Model> {
       if (!instanceMap.has(pkval)) {
         instanceMap.set(pkval, createInstance(this._modelClass, thisData));
       }
-      const instance = instanceMap.get(pkval);
-      Object.values(this._join).forEach(options => {
-        const model = options[MODEL];
-        const modelOption = getModelOption(model);
-        const _asPath = options.as.split('->');
-        const data = row[options.as];
-        if (data) {
-          // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
-          if (options.type.startsWith('LEFT')) {
-            if (data[modelOption.pk] === undefined) {
-              throw new Error(`left join select missing primary key of '${options.as}' table`);
-            }
-            // 没有结果跳过
-            if (data[modelOption.pk] === null) {
-              return;
-            }
+      this._joinResultMerge(instanceMap.get(pkval), row);
+    });
+    return Array.from(instanceMap.values());
+  }
+
+  protected _joinResultMerge(instance: T, resutl: DataResult) {
+    Object.values(this._join).forEach(options => {
+      const model = options[MODEL];
+      const modelOption = getModelOption(model);
+      const data = resutl[options.as];
+      if (data) {
+        // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
+        if (options.type.startsWith('LEFT')) {
+          if (data[modelOption.pk] === undefined) {
+            throw new Error(`left join select missing primary key of '${options.as}' table`);
           }
-          // 有 join 结果再初始化 as 对象
-          if (propertyAt(instance, _asPath) === undefined) {
-            propertyAt(instance, _asPath, options.asList ? [] : {});
-          }
-          // 设置数据到 as 对象中
-          const joinInstance = createInstance(model, data);
-          if (options.asList) {
-            propertyAt(instance, _asPath).push(joinInstance);
-          } else {
-            propertyAt(instance, _asPath, joinInstance);
+          // 没有结果跳过
+          if (data[modelOption.pk] === null) {
+            return;
           }
         }
-      });
-      // 合并其他非表结构数据到主数据中
-      if (typeof row[''] === 'object') {
-        Object.entries(row['']).forEach(([key, value]) => {
-          propertyAt(instance, key.split('->'), value);
-        });
+        const _asPath = options.as.split('->');
+        // 有 join 结果再初始化 as 对象
+        if (propertyAt(instance, _asPath) === undefined) {
+          propertyAt(instance, _asPath, options.asList ? [] : {});
+        }
+        // 设置数据到 as 对象中
+        const joinInstance = createInstance(model, data);
+        if (options.asList) {
+          propertyAt(instance, _asPath).push(joinInstance);
+        } else {
+          propertyAt(instance, _asPath, joinInstance);
+        }
       }
     });
-    return instanceMap;
+    // 合并其他非表结构数据到主数据中
+    if (typeof resutl[''] === 'object') {
+      Object.entries(resutl['']).forEach(([key, value]) => {
+        propertyAt(instance, key.split('->'), value);
+      });
+    }
   }
 
   protected _fetchBuilder(builder: Builder, one: boolean, columns: ColumnList) {
-    const isJoin = Object.values(this._join).length > 0;
+    const isJoin = this._haveJoin;
+    const isJoinList = isJoin && Object.values(this._join).findIndex(i => i.asList) !== -1;
     // 在有 join 的情况下如果没有指定目标表则默认使用当前表
     builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
     builder.from(this._option.table);
@@ -387,7 +366,7 @@ export class Finder<T extends Model> {
     this._whereBuilder(builder);
     this._groupBuilder(builder);
     this._orderBuilder(builder);
-    if (one && !isJoin) builder.one();
+    if (one && !isJoinList) builder.one();
     else this._limitBuilder(builder);
   }
 

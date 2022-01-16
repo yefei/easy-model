@@ -1,9 +1,10 @@
 import { DoesNotExist } from './excepts';
 import { FieldType } from 'sql-easy-builder';
 import { ColumnList, DataResult, DataValue, ModelClass, PageOption, PageResult, Query, QueryResult } from './types';
-import { Model } from './model';
+import { getModelOption, MODEL, Model } from './model';
 import { createInstance } from './instance';
-import { Finder } from './finder';
+import { FINDER, Finder } from './finder';
+import { propertyAt } from './utils';
 
 export class QueryFinder<T extends Model> extends Finder<T> {
   protected _query: Query;
@@ -17,12 +18,43 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    * 复制当前 QueryFinder 实例
    */
   clone(): QueryFinder<T> {
-    const finder = new QueryFinder<T>(this._modelClass, this._query);
-    return <QueryFinder<T>> this._clone(finder);
+    const qfinder = new QueryFinder<T>(this._modelClass, this._query);
+    return <QueryFinder<T>> super.clone(qfinder);
   }
 
   protected _fetchResult(one: boolean, columns: ColumnList) {
     return this._query.query(builder => this._fetchBuilder(builder, one, columns));
+  }
+
+  protected async _fetchManyResultMerge(instances: T | T[]): Promise<void> {
+    for (const opt of Object.values(this._many)) {
+      const model = opt[MODEL];
+      const modelOption = getModelOption(model);
+      const finder = opt[FINDER];
+      const refPath = opt.ref.split('.');
+      const asPath = (opt.as || modelOption.table).split('->');
+      const fetchManyResult = async (ins: T) => {
+        const refValue = propertyAt(ins, refPath);
+        if (refValue !== undefined) {
+          const qfinder = new QueryFinder(model, opt.query || this._query);
+          finder.clone(qfinder);
+          qfinder.whereAnd({ [opt.fk]: refValue });
+          var manyResults = await qfinder.all(...(opt.columns || []));
+        }
+        propertyAt(ins, asPath, manyResults || []);
+      };
+      if (Array.isArray(instances)) {
+        if (opt.parallel && instances.length > 1) {
+          await Promise.all(instances.map(fetchManyResult));
+        } else {
+          for (const ins of instances) {
+            await fetchManyResult(ins);
+          }
+        }
+      } else {
+        await fetchManyResult(instances);
+      }
+    }
   }
 
   /**
@@ -30,7 +62,15 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    */
   async all(...columns: ColumnList): Promise<T[]> {
     const resutl = <DataResult[]> await this._fetchResult(false, columns);
-    return resutl.map(row => createInstance(this._modelClass, row));
+    if (this._haveJoin) {
+      var instances = this._joinResultsMerge(resutl);
+    } else {
+      var instances = resutl.map(row => createInstance(this._modelClass, row));
+    }
+    if (instances && instances.length > 0 && this._haveMany) {
+      await this._fetchManyResultMerge(instances);
+    }
+    return instances;
   }
 
   /**
@@ -38,11 +78,22 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    */
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
-    // JOIN 处理
     if (Array.isArray(resutl)) {
-      return this._joinResult(resutl).values().next().value;
+      // JOIN asList 处理
+      var instance = this._joinResultsMerge(resutl)[0];
     }
-    return createInstance(this._modelClass, resutl);
+    else if (this._haveJoin) {
+      // 单行 join 处理
+      var instance = createInstance(this._modelClass, resutl[this._option.table]);
+      this._joinResultMerge(instance, resutl);
+    } else {
+      // 无 join 处理
+      var instance = createInstance(this._modelClass, resutl);
+    }
+    if (instance && this._haveMany) {
+      await this._fetchManyResultMerge(instance);
+    }
+    return instance;
   }
 
   /**
