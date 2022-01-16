@@ -10,6 +10,7 @@ function nextCallback(func: Function, ...args: any[]) {
 
 export class MockConnection extends EventEmitter {
   config: any;
+  authorized: boolean;
   threadId: number = 1;
   private _mockData: { [key: string]: any } = {};
 

@@ -1,7 +1,7 @@
 import { propertyAt, simpleCopy } from './utils';
-import { DoesNotExist, UndefinedRelationException } from './excepts';
-import { AttrBuilder, Builder, FieldType, JsonWhere, ValueType } from 'sql-easy-builder';
-import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, PageOption, PageResult, Query, QueryResult } from './types';
+import { UndefinedRelationException } from './excepts';
+import { Builder, FieldType, JsonWhere } from 'sql-easy-builder';
+import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption } from './types';
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
 import { createInstance } from './instance';
 
@@ -323,79 +323,6 @@ export class Finder<T extends Model> {
   }
   */
 
-  /**
-   * 取得数据
-   * @param columns 需要检出的字段
-   * @param isOne 是否取单条
-   */
-  /*
-  async _fetch(columns: ColumnList, isOne = false): Promise<T[] | T> {
-    const _join = Object.values(this._join);
-    const _notJoin = _join.length === 0;
-    // 取一条且无join情况
-    const _one = isOne && _notJoin;
-    const resutl = <DataResult[][] | DataResult[] | DataResult> await this._fetchResult(_one, columns);
-    if (!resutl || resutl.length === 0) {
-      return isOne ? null : [];
-    }
-    if (!Array.isArray(resutl)) return this._fetchAfter(resutl);
-    // 无 join
-    if (_notJoin) {
-      return this._fetchAfter(resutl);
-    }
-    // 合并 join 结果到 instance 中
-    const instanceMap = new Map();
-    // 处理列表结果
-    resutl.forEach(row => {
-      // 多条结果 join 结果组合
-      const mainName = this._repository.option.table;
-      const thisData = row[mainName];
-      const pkval = thisData[this._repository.option.pk];
-      if (pkval === undefined) {
-        throw new Error(`join select missing primary key of '${mainName}' table`);
-      }
-      if (!instanceMap.has(pkval)) {
-        instanceMap.set(pkval, this._repository.createInstance(thisData));
-      }
-      const instance = instanceMap.get(pkval);
-      _join.forEach(options => {
-        const model = options._model;
-        const data = row[options.as];
-        if (data) {
-          // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
-          if (options.type.startsWith('LEFT')) {
-            if (data[model[OPTIONS].pk] === undefined) {
-              throw new Error(`left join select missing primary key of '${options.as}' table`);
-            }
-            // 没有结果跳过
-            if (data[model[OPTIONS].pk] === null) {
-              return;
-            }
-          }
-          // 有 join 结果再初始化 as 对象
-          if (propertyAt(instance, options._asPath) === undefined) {
-            propertyAt(instance, options._asPath, options.asList ? [] : {});
-          }
-          // 设置数据到 as 对象中
-          const joinInstance = model._createInstance(data);
-          if (options.asList) {
-            propertyAt(instance, options._asPath).push(joinInstance);
-          } else {
-            propertyAt(instance, options._asPath, joinInstance);
-          }
-        }
-      });
-      // 合并其他非表结构数据到主数据中
-      if (typeof row[''] === 'object') {
-        Object.entries(row['']).forEach(([key, value]) => {
-          propertyAt(instance, key.split('->'), value);
-        });
-      }
-    });
-    return this._fetchAfter(isOne ? instanceMap.values().next().value : Array.from(instanceMap.values()));
-  }
-  */
-
   protected _joinResult(resutls: DataResult[]) {
     // 合并 join 结果到 instance 中
     const instanceMap = new Map<DataValue, T>();
@@ -451,7 +378,7 @@ export class Finder<T extends Model> {
     return instanceMap;
   }
 
-  _fetchBuilder(builder: Builder, one: boolean, columns: ColumnList) {
+  protected _fetchBuilder(builder: Builder, one: boolean, columns: ColumnList) {
     const isJoin = Object.values(this._join).length > 0;
     // 在有 join 的情况下如果没有指定目标表则默认使用当前表
     builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
@@ -464,7 +391,7 @@ export class Finder<T extends Model> {
     else this._limitBuilder(builder);
   }
 
-  _valueBuilder(builder: Builder, column: FieldType) {
+  protected _valueBuilder(builder: Builder, column: FieldType) {
     builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
     builder.from(this._option.table);
     this._joinBuilder(builder);
@@ -475,7 +402,7 @@ export class Finder<T extends Model> {
     builder.one(this._limit || 0);
   }
 
-  _countBuilder(builder: Builder, column: FieldType) {
+  protected _countBuilder(builder: Builder, column: FieldType) {
     builder.count(column, 'c');
     builder.from(this._option.table);
     this._joinBuilder(builder);
@@ -487,7 +414,7 @@ export class Finder<T extends Model> {
     builder.nestTables(false);
   }
 
-  _existsBuilder(builder: Builder) {
+  protected _existsBuilder(builder: Builder) {
     builder.select(builder.raw('1'));
     builder.from(this._option.table);
     this._joinBuilder(builder);
@@ -497,125 +424,17 @@ export class Finder<T extends Model> {
     builder.nestTables(false);
   }
 
-  _updateBuilder(builder: Builder, data: DataResult) {
+  protected _updateBuilder(builder: Builder, data: DataResult) {
     builder.update(this._option.table, data);
     this._whereBuilder(builder);
     this._orderBuilder(builder);
     this._limitBuilder(builder);
   }
 
-  _deleteBuilder(builder: Builder) {
+  protected _deleteBuilder(builder: Builder) {
     builder.delete(this._option.table);
     this._whereBuilder(builder);
     this._orderBuilder(builder);
     this._limitBuilder(builder);
-  }
-}
-
-export class FinderQuery<T extends Model> extends Finder<T> {
-  protected _query: Query;
-
-  constructor(modelClass: ModelClass<T>, query: Query) {
-    super(modelClass);
-    this._query = query;
-  }
-
-  /**
-   * 复制当前 FinderQuery 实例
-   */
-  clone(): FinderQuery<T> {
-    const finder = new FinderQuery<T>(this._modelClass, this._query);
-    return <FinderQuery<T>> this._clone(finder);
-  }
-
-  _fetchResult(one: boolean, columns: ColumnList) {
-    return this._query.query(builder => this._fetchBuilder(builder, one, columns));
-  }
-
-  /**
-   * 取得数据列表
-   */
-  async all(...columns: ColumnList): Promise<T[]> {
-    const resutl = <DataResult[]> await this._fetchResult(false, columns);
-    return resutl.map(row => createInstance(this._modelClass, row));
-  }
-
-  /**
-   * 取得一条数据
-   */
-  async get(...columns: ColumnList): Promise<T> {
-    const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
-    // JOIN 处理
-    if (Array.isArray(resutl)) {
-      return this._joinResult(resutl).values().next().value;
-    }
-    return createInstance(this._modelClass, resutl);
-  }
-
-  /**
-   * 分页取得数据列表
-   */
-  async page({ limit, offset, order }: PageOption, ...columns: ColumnList): Promise<PageResult<T>> {
-    const total = await this.count();
-    let list: T[] = [];
-    if (total > 0) {
-      this.limit(limit, offset);
-      if (order) {
-        this.order(...(typeof order === 'string' ? [order] : order));
-      }
-      list = await this.all(...columns);
-    }
-    return { limit, offset, order, total, list };
-  }
-
-  /**
-   * 直接取得查询数据中的一个值
-   * @param column
-   * @param defaultValue 如果找不到返回的默认值，不指定则抛出异常 DoesNotExist
-   */
-  async value<D>(column: FieldType, defaultValue?: D): Promise<DataValue | D> {
-    const result = <DataResult> await this._query.query(builder => this._valueBuilder(builder, column));
-    if (result && result.value) {
-      return result.value;
-    }
-    if (defaultValue === undefined) {
-      throw new DoesNotExist(`The requested object '${this._option.table}' does not exist.`);
-    }
-    return defaultValue;
-  }
-
-  /**
-   * 查询条数
-   */
-  async count(column: FieldType = '*') {
-    const result = <DataResult> await this._query.query(builder => this._countBuilder(builder, column));
-    return <number> result['c'];
-  }
-
-  /**
-   * 查询数据是否存在
-   */
-  async exists() {
-    const result = <DataResult> await this._query.query(builder => this._existsBuilder(builder));
-    return (result && result['1'] === 1) || false;
-  }
-
-  /**
-   * 更新数据
-   * @param data 需要更新的字段值
-   * @returns 更新条数
-   */
-  async update(data: DataResult) {
-    const result = <QueryResult> await this._query.query(builder => this._updateBuilder(builder, data));
-    return result.affectedRows;
-  }
-
-  /**
-   * 删除数据
-   * @returns 删除的条数
-   */
-  async delete() {
-    const result = <QueryResult> await this._query.query(builder => this._deleteBuilder(builder));
-    return result.affectedRows;
   }
 }

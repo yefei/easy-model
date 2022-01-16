@@ -1,7 +1,7 @@
 import { Query, ColumnList, DataValue, ModelClass, DataResult, ModelOption, QueryResult } from './types';
 import { Builder, JsonWhere } from 'sql-easy-builder';
 import { Model, UPDATE, PKVAL, getModelOption } from './model';
-import { FinderQuery } from './finder';
+import { QueryFinder } from './queryfinder';
 
 export class Repository<T extends Model> {
   protected _modelClass: ModelClass<T>;
@@ -32,7 +32,7 @@ export class Repository<T extends Model> {
    * 查找
    */
   find(where?: JsonWhere) {
-    const find = new FinderQuery<T>(this._modelClass, this._query);
+    const find = new QueryFinder<T>(this._modelClass, this._query);
     where && find.where(where);
     return find;
   }

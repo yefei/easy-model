@@ -85,25 +85,28 @@ describe('Model', function() {
     jsonEq(res, [{ content: 'abc' }]);
   });
 
-  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` AS `p` ON (`p`.`user_id` = `user`.`id`)', null, {
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` AS `p` ON (`p`.`user_id` = `user`.`id`)', null, [{
     user: userData,
-    profile: profileData,
-  });
+    p: profileData,
+  }]);
   it('join', async function() {
     const user = await UserQuery(query).find().join(Profile, {
       fk: 'id',
       ref: 'user_id',
       as: 'p',
     }).get();
-    console.log(user);
+    jsonEq(user, { ...user, p: profileData });
   });
-  return;
 
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` ON (`profile`.`user_id` = `user`.`id`)', null, [{
+    user: userData,
+    profile: profileData,
+  }]);
   it('join("define")', async function() {
     const user = await UserQuery(query).find().join('profile').get();
-    assert.ok(typeof user.save === 'function');
-    assert.ok(typeof user.profile.save === 'function');
+    jsonEq(user, { ...user, profile: profileData });
   });
+  return;
 
   it('join(toList)', async function() {
     const user = await UserQuery(query).find().join(Message, {
