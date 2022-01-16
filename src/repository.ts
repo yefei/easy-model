@@ -1,12 +1,12 @@
 import { Query, ColumnList, DataValue, ModelClass, DataResult, ModelOption, QueryResult } from './types';
 import { Builder, JsonWhere } from 'sql-easy-builder';
-import { Model, UPDATE, PKVAL, getModelOption, getDataMethods } from './model';
-import { Finder } from './finder';
+import { Model, UPDATE, PKVAL, getModelOption } from './model';
+import { FinderQuery } from './finder';
 
 export class Repository<T extends Model> {
-  readonly modelClass: ModelClass<T>;
-  readonly option: ModelOption;
-  private readonly _query: Query;
+  protected _modelClass: ModelClass<T>;
+  protected _option: ModelOption;
+  protected _query: Query;
 
   /**
    * @param modelClass 模型类
@@ -14,9 +14,9 @@ export class Repository<T extends Model> {
    * @param option 模型设置
    */
   constructor(modelClass: ModelClass<T>, query: Query) {
-    this.modelClass = modelClass;
+    this._modelClass = modelClass;
     this._query = query;
-    this.option = getModelOption(modelClass);
+    this._option = getModelOption(modelClass);
   }
 
   /**
@@ -29,57 +29,10 @@ export class Repository<T extends Model> {
   }
 
   /**
-   * 构造模型实例
-   */
-  createInstance(data?: DataResult): T {
-    if (!data) return null;
-    const ins = new this.modelClass(data);
-    // 100000次性能对比: defineProperties[136ms] > for{defineProperty}[111.5ms] > assign[16ms]
-    Object.assign(ins, { [PKVAL]: data[this.option.pk] }, data);
-
-    // 数据方法字段
-    const dataMethods = getDataMethods(this.modelClass);
-    if (dataMethods) {
-      for (const [key, descriptor] of Object.entries(dataMethods)) {
-        // 覆盖原始属性
-        Object.defineProperty(ins, key, {
-          enumerable: true,
-          writable: !!descriptor.set,
-          value: ins[key],
-        });
-      }
-    }
-
-    // 1. 拦截 set 操作，以备 save 方法的差异更新特性
-    // 2. 实现 dataMethods 的 set 方法调用
-    const proxy = new Proxy(<any> ins, {
-      // obj 是原始的 ins 对象
-      set(obj, prop, value) {
-        // console.log('Proxy set:', prop, value);
-        if (typeof prop === 'string') {
-          if (prop in dataMethods) {
-            if (!dataMethods[prop].set) return false;
-            dataMethods[prop].set.call(proxy, value);
-          }
-          // 如果修改的是数据库值并且不是子实例对象
-          else if (prop in data && !(typeof obj[prop] === 'object' && Reflect.has(obj[prop], PKVAL))) {
-            if (!ins[UPDATE]) ins[UPDATE] = new Set();
-            ins[UPDATE].add(prop);
-          }
-        }
-        obj[prop] = value;
-        return true;
-      }
-    });
-
-    return proxy;
-  }
-
-  /**
    * 查找
    */
   find(where?: JsonWhere) {
-    const find = new Finder<T>(this);
+    const find = new FinderQuery<T>(this._modelClass, this._query);
     where && find.where(where);
     return find;
   }
@@ -88,7 +41,7 @@ export class Repository<T extends Model> {
    * 通过主键取得一条数据
    */
   findByPk(pk: DataValue, ...columns: ColumnList) {
-    return this.find({ [this.option.pk]: pk }).get(...columns);
+    return this.find({ [this._option.pk]: pk }).get(...columns);
   }
 
   /**
@@ -111,10 +64,10 @@ export class Repository<T extends Model> {
    */
   async create(data: T): Promise<DataValue> {
     const r = <QueryResult> await this.query(builder => {
-      builder.insert(this.option.table, data);
+      builder.insert(this._option.table, data);
     });
     // 表不为自增主键无法获取 insertId 则尝试使用插入值
-    return r.insertId || data[this.option.pk] || r.insertId;
+    return r.insertId || data[this._option.pk] || r.insertId;
   }
 
   /**
@@ -139,9 +92,9 @@ export class Repository<T extends Model> {
     for (const f of updateSet) {
       data[f] = ins[f];
     }
-    const count = await this.find({ [this.option.pk]: ins[PKVAL] }).update(data);
-    if (this.option.pk in data) {
-      ins[PKVAL] = data[this.option.pk];
+    const count = await this.find({ [this._option.pk]: ins[PKVAL] }).update(data);
+    if (this._option.pk in data) {
+      ins[PKVAL] = data[this._option.pk];
     }
     updateSet.clear();
     return count;
@@ -155,7 +108,7 @@ export class Repository<T extends Model> {
     if (ins[PKVAL] === undefined) {
       throw new Error('Missing primary key value.');
     }
-    return this.find({ [this.option.pk]: ins[PKVAL] }).delete();
+    return this.find({ [this._option.pk]: ins[PKVAL] }).delete();
   }
 
   /**

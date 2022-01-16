@@ -16,7 +16,7 @@
   "scripts": {
     "prepublishOnly": "rm -fr dist && tsc",
     "gen": "cross-env ZENORM_NAME=../../src ts-node ./src/bin/zenorm.ts gen test/config.json",
-    "test-debug": "DEBUG=*,-mocha* yarn test",
+    "test-debug": "cross-env DEBUG=*,-mocha* yarn test",
     "test": "ts-mocha -p tsconfig.json test/**/*.spec.ts"
   },
   "keywords": [

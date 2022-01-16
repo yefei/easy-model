@@ -1,34 +1,32 @@
 import { propertyAt, simpleCopy } from './utils';
 import { DoesNotExist, UndefinedRelationException } from './excepts';
 import { AttrBuilder, Builder, FieldType, JsonWhere, ValueType } from 'sql-easy-builder';
-import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, PageOption, PageResult, QueryResult } from './types';
+import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, PageOption, PageResult, Query, QueryResult } from './types';
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
-import { Repository } from './repository';
+import { createInstance } from './instance';
 
 /**
  * Finder
  */
 export class Finder<T extends Model> {
-  private _repository: Repository<T>;
-  private _where: JsonWhere;
-  private _whereAndOr: [where: JsonWhere, prep?: string, after?: string][] = [];
-  private _limit: number = null;
-  private _offset: number = 0;
-  private _order: string[] = null;
-  private _join: { [name: string]: JoinOption<any> } = {};
-  private _many: { [name: string]: ManyOption<any> } = {};
-  private _group: string[] = [];
-  private _having: JsonWhere = null;
+  protected _modelClass: ModelClass<T>;
+  protected _option: ModelOption;
+  protected _where: JsonWhere;
+  protected _whereAndOr: [where: JsonWhere, prep?: string, after?: string][] = [];
+  protected _limit: number = null;
+  protected _offset: number = 0;
+  protected _order: string[] = null;
+  protected _join: { [name: string]: JoinOption<any> } = {};
+  protected _many: { [name: string]: ManyOption<any> } = {};
+  protected _group: string[] = [];
+  protected _having: JsonWhere = null;
 
-  constructor(repository: Repository<T>) {
-    this._repository = repository;
+  constructor(modelClass: ModelClass<T>) {
+    this._modelClass = modelClass;
+    this._option = getModelOption(modelClass);
   }
 
-  /**
-   * 复制当前 finder 实例
-   */
-  clone() {
-    const finder = new Finder<T>(this._repository);
+  protected _clone(finder: Finder<T>) {
     finder._where = simpleCopy(this._where);
     finder._whereAndOr = simpleCopy(this._whereAndOr);
     finder._limit = this._limit;
@@ -39,6 +37,14 @@ export class Finder<T extends Model> {
     finder._group = simpleCopy(this._group);
     finder._having = simpleCopy(this._having);
     return finder;
+  }
+
+  /**
+   * 复制当前 finder 实例
+   */
+  clone() {
+    const finder = new Finder<T>(this._modelClass);
+    return this._clone(finder);
   }
 
   /**
@@ -68,7 +74,7 @@ export class Finder<T extends Model> {
   /**
    * 构造查询
    */
-  _whereBuilder(builder: Builder) {
+  protected _whereBuilder(builder: Builder) {
     if (this._where) builder.where(this._where);
     this._whereAndOr.forEach(args => builder.where(...args));
   }
@@ -82,7 +88,7 @@ export class Finder<T extends Model> {
     return this;
   }
 
-  _limitBuilder(builder: Builder) {
+  protected _limitBuilder(builder: Builder) {
     if (!this._limit) return;
     builder.limit(this._limit, this._offset);
   }
@@ -95,12 +101,12 @@ export class Finder<T extends Model> {
     return this;
   }
 
-  _orderBuilder(builder: Builder) {
+  protected _orderBuilder(builder: Builder) {
     if (this._order && this._order.length > 0) {
       builder.order(...this._order);
       return;
     }
-    const defaultOrder = this._repository.option.order || [];
+    const defaultOrder = this._option.order || [];
     // 没有指定排序得情况下使用默认 order
     if (defaultOrder.length > 0) {
       // 没有 join 直接使用默认 order
@@ -111,9 +117,9 @@ export class Finder<T extends Model> {
       // 在有 join 的情况下如果没有指定目标表则默认使用当前表
       builder.order(...defaultOrder.map(i => {
         if (i.startsWith('-')) {
-          return `-${this._repository.option.table}.${i.slice(1)}`;
+          return `-${this._option.table}.${i.slice(1)}`;
         }
-        return `${this._repository.option.table}.${i}`;
+        return `${this._option.table}.${i}`;
       }));
     }
   }
@@ -121,7 +127,7 @@ export class Finder<T extends Model> {
   /**
    * 检查别名是否冲突
    */
-  _checkAsName(name: string) {
+  protected _checkAsName(name: string) {
     if (name in this._join || name in this._many) {
       throw new Error(`duplicate as: ${name}`);
     }
@@ -139,7 +145,7 @@ export class Finder<T extends Model> {
         let _options = this._join[joins[0]];
         // 是否需要加入第一级 join: a
         if (!_options) {
-          _options = this._getDefinedJoinOption(this._repository.modelClass, joins[0]);
+          _options = this._getDefinedJoinOption(this._modelClass, joins[0]);
           this._joinAppend(_options);
         }
         // 依次加入后续 join: b->c
@@ -161,7 +167,7 @@ export class Finder<T extends Model> {
         return this;
       }
       // 一级预定义 join
-      joinOption = Object.assign({}, this._getDefinedJoinOption(this._repository.modelClass, target), joinOption);
+      joinOption = Object.assign({}, this._getDefinedJoinOption(this._modelClass, target), joinOption);
     } else {
       if (!joinOption) {
         joinOption = {};
@@ -175,7 +181,7 @@ export class Finder<T extends Model> {
   /**
    * 取得预定义 join 项的配置
    */
-  _getDefinedJoinOption<M extends Model>(modelClass: ModelClass<M>, key: string): JoinOption<M> {
+  protected _getDefinedJoinOption<M extends Model>(modelClass: ModelClass<M>, key: string): JoinOption<M> {
     const opt = getModelJoinOption(modelClass, key);
     if (!opt) {
       throw new UndefinedRelationException(`${modelClass.name} join ${key}`);
@@ -183,22 +189,23 @@ export class Finder<T extends Model> {
     return opt;
   }
 
-  _joinAppend<J extends Model>(option: JoinOption<J>) {
+  protected _joinAppend<J extends Model>(option: JoinOption<J>) {
     const joinModel = option[MODEL];
     const opt = getModelOption(joinModel);
-    option = Object.assign({
-      from: this._repository.option.table,
+    const defaultOption: JoinOption<J> = {
+      from: this._option.table,
       fk: opt.table + '_' + opt.pk,
-      ref: this._repository.option.pk,
+      ref: this._option.pk,
       type: 'INNER',
       as: opt.table,
       asList: false,
-    }, option);
+    };
+    option = Object.assign(defaultOption, option);
     this._checkAsName(option.as);
     this._join[option.as] = option;
   }
 
-  _joinBuilder(builder: Builder) {
+  protected _joinBuilder(builder: Builder) {
     Object.values(this._join).forEach(opt => {
       const modelOpt = getModelOption(opt[MODEL])
       // opt._asPath = opt.as.split('->');
@@ -219,8 +226,8 @@ export class Finder<T extends Model> {
     });
   }
 
-  _columnPrep(col: string | ColumnAs) {
-    return typeof col === 'string' && !col.includes('.') ? `${this._repository.option.table}.${col}` : col;
+  protected _columnPrep(col: string | ColumnAs) {
+    return typeof col === 'string' && !col.includes('.') ? `${this._option.table}.${col}` : col;
   }
 
   /**
@@ -229,9 +236,9 @@ export class Finder<T extends Model> {
    */
   many<M extends Model>(target: string | ModelClass<M>, option?: ManyOption<M>) {
     if (typeof target === 'string') {
-      const opt = getModelManyOption(this._repository.modelClass, target);
+      const opt = getModelManyOption(this._modelClass, target);
       if (!opt) {
-        throw new UndefinedRelationException(`${this._repository.modelClass.name} many ${target}`);
+        throw new UndefinedRelationException(`${this._modelClass.name} many ${target}`);
       }
       option = Object.assign({}, opt, option);
       target = option[MODEL];
@@ -239,7 +246,7 @@ export class Finder<T extends Model> {
     const targetModelOpt = getModelOption(target);
     option = Object.assign({
       fk: targetModelOpt.table + '_' + targetModelOpt.pk,
-      ref: this._repository.option.pk,
+      ref: this._option.pk,
       parallel: false,
     }, option);
     this._checkAsName(option.as);
@@ -263,7 +270,7 @@ export class Finder<T extends Model> {
     return this;
   }
 
-  _groupBuilder(builder: Builder) {
+  protected _groupBuilder(builder: Builder) {
     if (this._group.length) {
       builder.group(...this._group);
       if (this._having) {
@@ -315,21 +322,6 @@ export class Finder<T extends Model> {
     return ins;
   }
   */
-
-  _fetchResult(one: boolean, columns: ColumnList) {
-    const isJoin = Object.values(this._join).length > 0;
-    return this._repository.query(builder => {
-      // 在有 join 的情况下如果没有指定目标表则默认使用当前表
-      builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
-      builder.from(this._repository.option.table);
-      isJoin && this._joinBuilder(builder);
-      this._whereBuilder(builder);
-      this._groupBuilder(builder);
-      this._orderBuilder(builder);
-      if (one && !isJoin) builder.one();
-      else this._limitBuilder(builder);
-    });
-  }
 
   /**
    * 取得数据
@@ -404,20 +396,20 @@ export class Finder<T extends Model> {
   }
   */
 
-  _joinResult(resutls: DataResult[]) {
+  protected _joinResult(resutls: DataResult[]) {
     // 合并 join 结果到 instance 中
     const instanceMap = new Map<DataValue, T>();
     // 处理列表结果
     resutls.forEach(row => {
       // 多条结果 join 结果组合
-      const mainName = this._repository.option.table;
+      const mainName = this._option.table;
       const thisData = row[mainName];
-      const pkval = thisData[this._repository.option.pk];
+      const pkval = thisData[this._option.pk];
       if (pkval === undefined) {
         throw new Error(`join select missing primary key of '${mainName}' table`);
       }
       if (!instanceMap.has(pkval)) {
-        instanceMap.set(pkval, this._repository.createInstance(thisData));
+        instanceMap.set(pkval, createInstance(this._modelClass, thisData));
       }
       const instance = instanceMap.get(pkval);
       Object.values(this._join).forEach(options => {
@@ -441,7 +433,7 @@ export class Finder<T extends Model> {
             propertyAt(instance, _asPath, options.asList ? [] : {});
           }
           // 设置数据到 as 对象中
-          const joinInstance = this._repository.createInstance(data);
+          const joinInstance = createInstance(model, data);
           if (options.asList) {
             propertyAt(instance, _asPath).push(joinInstance);
           } else {
@@ -459,12 +451,93 @@ export class Finder<T extends Model> {
     return instanceMap;
   }
 
+  _fetchBuilder(builder: Builder, one: boolean, columns: ColumnList) {
+    const isJoin = Object.values(this._join).length > 0;
+    // 在有 join 的情况下如果没有指定目标表则默认使用当前表
+    builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
+    builder.from(this._option.table);
+    isJoin && this._joinBuilder(builder);
+    this._whereBuilder(builder);
+    this._groupBuilder(builder);
+    this._orderBuilder(builder);
+    if (one && !isJoin) builder.one();
+    else this._limitBuilder(builder);
+  }
+
+  _valueBuilder(builder: Builder, column: FieldType) {
+    builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
+    builder.from(this._option.table);
+    this._joinBuilder(builder);
+    builder.nestTables(false);
+    this._whereBuilder(builder);
+    this._groupBuilder(builder);
+    this._orderBuilder(builder);
+    builder.one(this._limit || 0);
+  }
+
+  _countBuilder(builder: Builder, column: FieldType) {
+    builder.count(column, 'c');
+    builder.from(this._option.table);
+    this._joinBuilder(builder);
+    this._whereBuilder(builder);
+    if (this._group.length) {
+      throw new Error(`在 group() 中使用 count() 用法错误。请使用 all('${column}', { count: AB.count('${column}') }) 取得结果。`);
+    }
+    builder.setOne();
+    builder.nestTables(false);
+  }
+
+  _existsBuilder(builder: Builder) {
+    builder.select(builder.raw('1'));
+    builder.from(this._option.table);
+    this._joinBuilder(builder);
+    this._whereBuilder(builder);
+    this._groupBuilder(builder);
+    builder.one();
+    builder.nestTables(false);
+  }
+
+  _updateBuilder(builder: Builder, data: DataResult) {
+    builder.update(this._option.table, data);
+    this._whereBuilder(builder);
+    this._orderBuilder(builder);
+    this._limitBuilder(builder);
+  }
+
+  _deleteBuilder(builder: Builder) {
+    builder.delete(this._option.table);
+    this._whereBuilder(builder);
+    this._orderBuilder(builder);
+    this._limitBuilder(builder);
+  }
+}
+
+export class FinderQuery<T extends Model> extends Finder<T> {
+  protected _query: Query;
+
+  constructor(modelClass: ModelClass<T>, query: Query) {
+    super(modelClass);
+    this._query = query;
+  }
+
+  /**
+   * 复制当前 FinderQuery 实例
+   */
+  clone(): FinderQuery<T> {
+    const finder = new FinderQuery<T>(this._modelClass, this._query);
+    return <FinderQuery<T>> this._clone(finder);
+  }
+
+  _fetchResult(one: boolean, columns: ColumnList) {
+    return this._query.query(builder => this._fetchBuilder(builder, one, columns));
+  }
+
   /**
    * 取得数据列表
    */
   async all(...columns: ColumnList): Promise<T[]> {
     const resutl = <DataResult[]> await this._fetchResult(false, columns);
-    return resutl.map(row => this._repository.createInstance(row));
+    return resutl.map(row => createInstance(this._modelClass, row));
   }
 
   /**
@@ -472,10 +545,11 @@ export class Finder<T extends Model> {
    */
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
+    // JOIN 处理
     if (Array.isArray(resutl)) {
       return this._joinResult(resutl).values().next().value;
     }
-    return this._repository.createInstance(resutl);
+    return createInstance(this._modelClass, resutl);
   }
 
   /**
@@ -489,7 +563,7 @@ export class Finder<T extends Model> {
       if (order) {
         this.order(...(typeof order === 'string' ? [order] : order));
       }
-      // list = await this.all(...columns);
+      list = await this.all(...columns);
     }
     return { limit, offset, order, total, list };
   }
@@ -500,21 +574,12 @@ export class Finder<T extends Model> {
    * @param defaultValue 如果找不到返回的默认值，不指定则抛出异常 DoesNotExist
    */
   async value<D>(column: FieldType, defaultValue?: D): Promise<DataValue | D> {
-    const result = <DataResult> await this._repository.query(builder => {
-      builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
-      builder.from(this._repository.option.table);
-      this._joinBuilder(builder);
-      builder.nestTables(false);
-      this._whereBuilder(builder);
-      this._groupBuilder(builder);
-      this._orderBuilder(builder);
-      builder.one(this._limit || 0);
-    });
+    const result = <DataResult> await this._query.query(builder => this._valueBuilder(builder, column));
     if (result && result.value) {
       return result.value;
     }
     if (defaultValue === undefined) {
-      throw new DoesNotExist(`The requested object '${this._repository.option.table}' does not exist.`);
+      throw new DoesNotExist(`The requested object '${this._option.table}' does not exist.`);
     }
     return defaultValue;
   }
@@ -523,17 +588,7 @@ export class Finder<T extends Model> {
    * 查询条数
    */
   async count(column: FieldType = '*') {
-    const result = <DataResult> await this._repository.query(builder => {
-      builder.count(column, 'c');
-      builder.from(this._repository.option.table);
-      this._joinBuilder(builder);
-      this._whereBuilder(builder);
-      if (this._group.length) {
-        throw new Error(`在 group() 中使用 count() 用法错误。请使用 all('${column}', { count: AB.count('${column}') }) 取得结果。`);
-      }
-      builder.setOne();
-      builder.nestTables(false);
-    });
+    const result = <DataResult> await this._query.query(builder => this._countBuilder(builder, column));
     return <number> result['c'];
   }
 
@@ -541,15 +596,7 @@ export class Finder<T extends Model> {
    * 查询数据是否存在
    */
   async exists() {
-    const result = <DataResult> await this._repository.query(builder => {
-      builder.select(builder.raw('1'));
-      builder.from(this._repository.option.table);
-      this._joinBuilder(builder);
-      this._whereBuilder(builder);
-      this._groupBuilder(builder);
-      builder.one();
-      builder.nestTables(false);
-    });
+    const result = <DataResult> await this._query.query(builder => this._existsBuilder(builder));
     return (result && result['1'] === 1) || false;
   }
 
@@ -559,12 +606,7 @@ export class Finder<T extends Model> {
    * @returns 更新条数
    */
   async update(data: DataResult) {
-    const result = <QueryResult> await this._repository.query(builder => {
-      builder.update(this._repository.option.table, data);
-      this._whereBuilder(builder);
-      this._orderBuilder(builder);
-      this._limitBuilder(builder);
-    });
+    const result = <QueryResult> await this._query.query(builder => this._updateBuilder(builder, data));
     return result.affectedRows;
   }
 
@@ -573,12 +615,7 @@ export class Finder<T extends Model> {
    * @returns 删除的条数
    */
   async delete() {
-    const result = <QueryResult> await this._repository.query(builder => {
-      builder.delete(this._repository.option.table);
-      this._whereBuilder(builder);
-      this._orderBuilder(builder);
-      this._limitBuilder(builder);
-    });
+    const result = <QueryResult> await this._query.query(builder => this._deleteBuilder(builder));
     return result.affectedRows;
   }
 }

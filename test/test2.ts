@@ -4,6 +4,7 @@ import { model, join, many, data, Model } from "../src/model";
 import { Repository } from "../src/repository";
 import { Query } from '../src/types';
 import { UserQuery } from './model';
+import { createInstance } from '../src/instance';
 
 const pool = mysql.createPool({
   host: '127.0.0.1',
@@ -114,7 +115,7 @@ async function main() {
   const testData = { id: 3, name: 'test2', birthday: new Date() };
   console.time('benchmark');
   for (let i = 0; i < 100000; i++) {
-    repo.createInstance(testData);
+    createInstance(User, testData);
   }
   console.timeEnd('benchmark');
 }
