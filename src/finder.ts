@@ -211,15 +211,15 @@ export class Finder<T extends Model> {
       // asList: false,
     };
     option = Object.assign(defaultOption, option);
-    switch (option.type) {
-    case 'OneToOne':
+    if (option.type === 'OneToOne') {
       if (!option.fk) option.fk = opt.pk;
-    case 'ManyToOne':
-    case 'OneToMany':
+    }
+    else if (option.type === 'ManyToOne' || option.type === 'OneToMany') {
       if (!option.fk) option.fk = opt.pk;
       if (!option.ref) option.ref = this._option.table + '_' + this._option.pk;
-    case 'OneToMany':
-      if (typeof option.asList === 'undefined') option.asList = true;
+      if (option.type === 'OneToMany') {
+        if (typeof option.asList === 'undefined') option.asList = true;
+      }
     }
     if (!option.ref) option.ref = this._option.pk;
     if (!option.fk) option.fk = opt.table + '_' + opt.pk;
@@ -245,15 +245,6 @@ export class Finder<T extends Model> {
       );
       builder.nestTables();
     });
-  }
-
-  protected _columnPrep(col: string | ColumnAs | TableColumnList) {
-    if (typeof col === 'string') {
-      if (!col.includes('.')) {
-        return `${this._option.table}.${col}`;
-      }
-    }
-    return col;
   }
 
   /**
@@ -322,7 +313,7 @@ export class Finder<T extends Model> {
     for (const row of resutls) {
       // 多条结果 join 结果组合
       const thisData = row[mainName];
-      const pkval = thisData[this._option.pk];
+      const pkval = thisData[this._option.pk] || thisData['__pk'];
       if (pkval === undefined) {
         throw new Error(`join select missing primary key of '${mainName}' table`);
       }
@@ -342,11 +333,12 @@ export class Finder<T extends Model> {
       if (data) {
         // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
         if (options.type.startsWith('LEFT')) {
-          if (data[modelOption.pk] === undefined) {
+          const pkval = data[modelOption.pk] || data['__pk'];
+          if (pkval === undefined) {
             throw new Error(`left join select missing primary key of '${options.as}' table`);
           }
           // 没有结果跳过
-          if (data[modelOption.pk] === null) {
+          if (pkval === null) {
             return;
           }
         }
@@ -372,9 +364,28 @@ export class Finder<T extends Model> {
     }
   }
 
+  protected _columnPrep(col: string | ColumnAs | TableColumnList) {
+    if (typeof col === 'string') {
+      if (col !== '*' && !col.includes('.')) {
+        return `${this._option.table}.${col}`;
+      }
+    }
+    return col;
+  }
+
   protected _fetchBuilder(builder: Builder, one: boolean, columns: ColumnList) {
     const isJoin = this._haveJoin;
     const isJoinList = isJoin && Object.values(this._join).findIndex(i => i.asList) !== -1;
+    if (columns.length > 0) {
+      // 如果指定列检出则强制加上主键检出
+      columns.push({ [`${this._option.table}.${this._option.pk}`]: `__pk` });
+      if (isJoin) {
+        for (const j of Object.values(this._join)) {
+          const jopt = getModelOption(j[MODEL]);
+          columns.push({ [`${j.as}.${jopt.pk}`]: `__pk` });
+        }
+      }
+    }
     // 在有 join 的情况下如果没有指定目标表则默认使用当前表
     builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
     builder.from(this._option.table);

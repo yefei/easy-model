@@ -2,9 +2,6 @@ import { ModelClass } from ".";
 import { getDataMethods, getModelOption, Model, PKVAL, UPDATE } from "./model";
 import { DataResult } from "./types";
 
-const GENERATE_ID = Symbol('GenerateId');
-let generateId = 1;
-
 /**
  * 构造模型实例
  */
@@ -12,8 +9,10 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
   if (!data) return null;
   const option = getModelOption(modelClass);
   const ins = new modelClass(data);
+  const pkval = data[option.pk] || data['__pk'];
+  if ('__pk' in data) delete data.__pk;
   // 100000次性能对比: defineProperties[136ms] > for{defineProperty}[111.5ms] > assign[16ms]
-  Object.assign(ins, { [GENERATE_ID]: generateId++, [PKVAL]: data[option.pk] }, data);
+  Object.assign(ins, { [PKVAL]: pkval }, data);
 
   // 数据方法字段
   const dataMethods = getDataMethods(modelClass);
@@ -32,7 +31,6 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
   // 2. 实现 dataMethods 的 set 方法调用
   const proxy = new Proxy(ins, {
     set(target, prop, value) {
-      console.log('Proxy set:', prop, value);
       if (typeof prop === 'string') {
         if (dataMethods && prop in dataMethods) {
           if (!dataMethods[prop].set) return false;
@@ -45,7 +43,6 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
         }
       }
       (<any> target)[prop] = value;
-      console.log({target});
       return true;
     }
   });

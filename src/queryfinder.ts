@@ -1,7 +1,7 @@
 import { DoesNotExist } from './excepts';
 import { FieldType } from 'sql-easy-builder';
 import { ColumnList, DataResult, DataValue, ModelClass, PageOption, PageResult, Query, QueryResult } from './types';
-import { getModelOption, MODEL, Model } from './model';
+import { getModelOption, MODEL, Model, PKVAL } from './model';
 import { createInstance } from './instance';
 import { FINDER, Finder } from './finder';
 import { propertyAt } from './utils';
@@ -31,7 +31,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
       const model = opt[MODEL];
       const modelOption = getModelOption(model);
       const finder = opt[FINDER];
-      const refPath = opt.ref.split('.');
+      const refPath = opt.ref === this._option.pk ? [PKVAL] : opt.ref.split('.');
       const asPath = (opt.as || modelOption.table).split('->');
       const fetchManyResult = async (ins: T) => {
         const refValue = propertyAt(ins, refPath);
