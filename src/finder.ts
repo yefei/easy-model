@@ -211,14 +211,14 @@ export class Finder<T extends Model> {
       // asList: false,
     };
     option = Object.assign(defaultOption, option);
-    if (option.type === 'OneToOne') {
+    switch (option.type) {
+    case 'OneToOne':
       if (!option.fk) option.fk = opt.pk;
-    }
-    else if (option.type === 'ManyToOne') {
+    case 'ManyToOne':
+    case 'OneToMany':
       if (!option.fk) option.fk = opt.pk;
       if (!option.ref) option.ref = this._option.table + '_' + this._option.pk;
-    }
-    else if (option.type === 'OneToMany') {
+    case 'OneToMany':
       if (typeof option.asList === 'undefined') option.asList = true;
     }
     if (!option.ref) option.ref = this._option.pk;

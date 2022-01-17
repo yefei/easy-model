@@ -93,8 +93,10 @@ export function join<T extends Model>(modelClass: ModelClass<T>, option?: Define
     const ove: JoinOption<T> = {
       [MODEL]: modelClass,
       as: propertyKey,
-      asList: reflectMetadataType === Array,
     };
+    if (reflectMetadataType === Array) {
+      ove.type = 'OneToMany';
+    }
     Reflect.defineMetadata(JOIN, Object.assign({}, option, ove), target, propertyKey);
   }
 }
