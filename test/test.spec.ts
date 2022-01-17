@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as stringify from 'json-stable-stringify';
 import { Query, AB } from 'mysql-easy-query';
 import { MockConnection } from './mock_mysql';
 import {
@@ -19,7 +20,7 @@ function eq(a: any, b: any) {
 }
 
 function jsonEq(a: any, b: any) {
-  eq(JSON.stringify(a), JSON.stringify(b));
+  eq(stringify(a), stringify(b));
 }
 
 const userData = { id: 1, name: 'yf', birthday: new Date(new Date().getFullYear() - 35, 11, 11) };
@@ -85,7 +86,7 @@ describe('Model', function() {
     jsonEq(res, [{ content: 'abc' }]);
   });
 
-  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` AS `p` ON (`p`.`user_id` = `user`.`id`)', null, [{
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` AS `p` ON (`p`.`user_id` = `user`.`id`) LIMIT ?', [1], [{
     user: userData,
     p: profileData,
   }]);
@@ -98,7 +99,7 @@ describe('Model', function() {
     jsonEq(user, { ...user, p: profileData });
   });
 
-  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` ON (`profile`.`user_id` = `user`.`id`)', null, [{
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `profile` ON (`profile`.`user_id` = `user`.`id`) LIMIT ?', [1], [{
     user: userData,
     profile: profileData,
   }]);
@@ -106,8 +107,11 @@ describe('Model', function() {
     const user = await UserQuery(query).find().join('profile').get();
     jsonEq(user, { ...user, profile: profileData });
   });
-  return;
 
+  conn.setMockData('SELECT * FROM `user` INNER JOIN `message` ON (`message`.`user_id` = `user`.`id`) INNER JOIN `profile` ON (`profile`.`user_id` = `user`.`id`)', null, [
+    { user: userData, profile: profileData, message: { id: 1, user_id: 1, content: 'u1msg1' } },
+    { user: userData, profile: profileData, message: { id: 2, user_id: 1, content: 'u1msg2' } },
+  ]);
   it('join(toList)', async function() {
     const user = await UserQuery(query).find().join(Message, {
       fk: 'id',
@@ -119,13 +123,18 @@ describe('Model', function() {
       ref: 'user_id',
     })
     .get();
-    assert.ok(typeof user.save === 'function');
-    assert.ok(Array.isArray(user.message));
-    assert.ok(typeof user.profile.save === 'function');
+    jsonEq(user, { ...userData, age: 35, profile: profileData, message: [
+      { id: 1, user_id: 1, content: 'u1msg1' },
+      { id: 2, user_id: 1, content: 'u1msg2' },
+    ] })
   });
 
+  conn.setMockData('SELECT `profile`.`id`, `profile`.`user_id`, `user`.`id`, `user->messages`.`id`, `user->messages`.`content`, `user->messages`.`user_id` FROM `profile` INNER JOIN `user` ON (`user`.`id` = `profile`.`user_id`) INNER JOIN `message` AS `user->messages` ON (`user->messages`.`user_id` = `profile`.`user_id`) WHERE `profile`.`user_id` = ?', [ 1 ], [
+    { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 1, content: 'msg1', user_id: 1 } },
+    { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 2, content: 'msg2', user_id: 1 } },
+  ]);
   it('join(as: path->to)', async function() {
-    const profile = await ProfileQuery(query).find({ profile: { user_id: id } })
+    const profile = await ProfileQuery(query).find({ profile: { user_id: 1 } })
     .join(User)
     .join(Message, {
       fk: 'user_id',
@@ -138,15 +147,12 @@ describe('Model', function() {
       user: ['id'],
       'user->messages': ['id', 'content', 'user_id'],
     });
-    assert.ok(profile.user_id === id);
-    assert.ok(profile.user.id === id);
-    for (const m of profile.user.messages) {
-      assert.ok(m.user_id === id);
-    }
-    const m = profile.user.messages.pop();
-    m.content = 'join(as).test';
-    await m.save();
+    jsonEq(profile, { id: 1, user_id: 1, user: { id: 1, messages: [
+      { id: 1, content: 'msg1', user_id: 1 },
+      { id: 2, content: 'msg2', user_id: 1 },
+    ] } });
   });
+  return;
 
   it('join("path->to")', async function() {
     const profile = await ProfileQuery(query).find({ profile: { user_id: id } })

@@ -18,9 +18,14 @@ export type DataResult = { [column: string]: DataValue };
 export type ColumnAs = { [column: string]: string };
 
 /**
+ * 表下面列名
+ */
+export type TableColumnList = { [table: string]: string[] };
+
+/**
  * 数据库列名列表
  */
-export type ColumnList = (string | ColumnAs)[];
+export type ColumnList = (string | TableColumnList | ColumnAs)[];
 
 /**
  * Model class
@@ -40,15 +45,15 @@ export interface ModelClass<T extends Model> {
 /**
  * 关联关系
  */
-export interface RelationOption<T extends Model> {
+export interface RelationOption<J extends Model> {
   /**
    * 模型类
    * 隐含属性
    */
-  [MODEL]?: ModelClass<T>;
+  [MODEL]?: ModelClass<J>;
 
   /**
-   * 使用的外键，默认取 {model.name}_{model.pk}
+   * 使用的外键，默认取 {J.name}_{J.pk}
    */
   fk?: string;
 
@@ -75,9 +80,15 @@ export interface JoinOption<T extends Model> extends RelationOption<T> {
 
   /**
    * join 模式
-   * @default 'INNER'
+   * @default 'ManyToOne'
    */
-  type?: 'INNER' | 'LEFT' | 'RIGHT' | string;
+  type?: 'OneToOne' | 'ManyToOne' | 'OneToMany';
+
+  /**
+   * 决定 join 的方式
+   * 如果 optional=true 则使用 LEFT，否则默认使用 INNER
+   */
+  optional?: boolean;
 
   /**
    * 覆盖默认 ON 查询

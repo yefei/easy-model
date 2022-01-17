@@ -31,7 +31,7 @@ export interface Model {
   /**
    * 数据字段
    */
-  [colunm: string]: any;
+  [colunm: string | symbol | number]: any;
 }
 
 /**

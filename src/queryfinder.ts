@@ -62,6 +62,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    */
   async all(...columns: ColumnList): Promise<T[]> {
     const resutl = <DataResult[]> await this._fetchResult(false, columns);
+    if (resutl.length === 0) return [];
     if (this._haveJoin) {
       var instances = this._joinResultsMerge(resutl);
     } else {
@@ -78,6 +79,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    */
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
+    if (!resutl) return null;
     if (Array.isArray(resutl)) {
       // JOIN asList 处理
       var instance = this._joinResultsMerge(resutl)[0];

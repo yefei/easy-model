@@ -1,7 +1,7 @@
 import { propertyAt, simpleCopy } from './utils';
 import { UndefinedRelationException } from './excepts';
 import { Builder, FieldType, JsonWhere } from 'sql-easy-builder';
-import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption } from './types';
+import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, TableColumnList } from './types';
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
 import { createInstance } from './instance';
 
@@ -204,21 +204,32 @@ export class Finder<T extends Model> {
     const opt = getModelOption(joinModel);
     const defaultOption: JoinOption<J> = {
       from: this._option.table,
-      fk: opt.table + '_' + opt.pk,
-      ref: this._option.pk,
-      type: 'INNER',
+      // ref: this._option.pk,
+      // fk: option.asList ? this._option.table + '_' + this._option.pk : opt.table + '_' + opt.pk,
+      type: 'ManyToOne',
       as: opt.table,
-      asList: false,
+      // asList: false,
     };
     option = Object.assign(defaultOption, option);
+    if (option.type === 'OneToOne') {
+      if (!option.fk) option.fk = opt.pk;
+    }
+    else if (option.type === 'ManyToOne') {
+      if (!option.fk) option.fk = opt.pk;
+      if (!option.ref) option.ref = this._option.table + '_' + this._option.pk;
+    }
+    else if (option.type === 'OneToMany') {
+      if (typeof option.asList === 'undefined') option.asList = true;
+    }
+    if (!option.ref) option.ref = this._option.pk;
+    if (!option.fk) option.fk = opt.table + '_' + opt.pk;
     this._checkAsName(option.as);
     this._join[option.as] = option;
   }
 
   protected _joinBuilder(builder: Builder) {
     Object.values(this._join).forEach(opt => {
-      const modelOpt = getModelOption(opt[MODEL])
-      // opt._asPath = opt.as.split('->');
+      const modelOpt = getModelOption(opt[MODEL]);
       const on = opt.on || {
         [`${opt.as}.${opt.ref}`]: builder.quote(`${opt.from}.${opt.fk}`),
       };
@@ -230,14 +241,19 @@ export class Finder<T extends Model> {
         // 如果和表名一致则没有必要 as
         opt.as === modelOpt.table ? null : opt.as,
         on,
-        opt.type
+        opt.optional ? 'LEFT' : 'INNER',
       );
       builder.nestTables();
     });
   }
 
-  protected _columnPrep(col: string | ColumnAs) {
-    return typeof col === 'string' && !col.includes('.') ? `${this._option.table}.${col}` : col;
+  protected _columnPrep(col: string | ColumnAs | TableColumnList) {
+    if (typeof col === 'string') {
+      if (!col.includes('.')) {
+        return `${this._option.table}.${col}`;
+      }
+    }
+    return col;
   }
 
   /**
@@ -303,7 +319,7 @@ export class Finder<T extends Model> {
     // 合并 join 结果到 instance 中
     const instanceMap = new Map<DataValue, T>();
     // 处理列表结果
-    resutls.forEach(row => {
+    for (const row of resutls) {
       // 多条结果 join 结果组合
       const thisData = row[mainName];
       const pkval = thisData[this._option.pk];
@@ -314,7 +330,7 @@ export class Finder<T extends Model> {
         instanceMap.set(pkval, createInstance(this._modelClass, thisData));
       }
       this._joinResultMerge(instanceMap.get(pkval), row);
-    });
+    }
     return Array.from(instanceMap.values());
   }
 

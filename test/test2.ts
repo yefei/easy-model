@@ -47,7 +47,7 @@ async function main() {
   console.log(res);
   */
 
-  const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').many('messageList').get();
+  const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').join('messages').many('messageList').get();
   console.log(joinRes);
 
   return;
