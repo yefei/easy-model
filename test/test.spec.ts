@@ -130,7 +130,7 @@ describe('Model', function() {
     ] })
   });
 
-  conn.setMockData('SELECT `profile`.`id`, `profile`.`user_id`, `user`.`id`, `user->messages`.`id`, `user->messages`.`content`, `user->messages`.`user_id`, `profile`.`id` AS `'+PKNAME+'`, `user`.`id` AS `'+PKNAME+'`, `user->messages`.`id` AS `'+PKNAME+'` FROM `profile` INNER JOIN `user` ON (`user`.`profile_id` = `profile`.`id`) INNER JOIN `message` AS `user->messages` ON (`user->messages`.`user_id` = `profile`.`user_id`) WHERE `profile`.`user_id` = ?', [ 1 ], [
+  conn.setMockData('SELECT `profile`.`id`, `profile`.`user_id`, `user`.`id`, `user->messages`.`id`, `user->messages`.`content`, `user->messages`.`user_id`, `profile`.`id` AS `'+PKNAME+'`, `user`.`id` AS `'+PKNAME+'`, `user->messages`.`id` AS `'+PKNAME+'` FROM `profile` INNER JOIN `user` ON (`user`.`id` = `profile`.`user_id`) INNER JOIN `message` AS `user->messages` ON (`user->messages`.`user_id` = `profile`.`user_id`) WHERE `profile`.`user_id` = ?', [ 1 ], [
     { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 1, content: 'msg1', user_id: 1 } },
     { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 2, content: 'msg2', user_id: 1 } },
   ]);

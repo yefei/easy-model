@@ -311,7 +311,7 @@ export class Finder<T extends Model> {
     for (const row of resutls) {
       // 多条结果 join 结果组合
       const thisData = row[mainName];
-      const pkval = thisData[this._option.pk] || thisData[PKNAME];
+      const pkval = PKNAME in thisData ? thisData[PKNAME] : thisData[this._option.pk];
       if (pkval === undefined) {
         throw new Error(`join select missing primary key of '${mainName}' table`);
       }
@@ -324,36 +324,33 @@ export class Finder<T extends Model> {
   }
 
   protected _joinResultMerge(instance: T, resutl: DataResult) {
-    Object.values(this._join).forEach(options => {
-      const model = options[MODEL];
+    for (const opt of Object.values(this._join)) {
+      const model = opt[MODEL];
       const modelOption = getModelOption(model);
-      const data = resutl[options.as];
+      const data = resutl[opt.as];
       if (data) {
         // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
-        if (options.optional) {
-          const pkval = data[modelOption.pk] || data[PKNAME];
+        if (opt.optional) {
+          const pkval = PKNAME in data ? data[PKNAME] : data[modelOption.pk];
           if (pkval === undefined) {
-            throw new Error(`left join select missing primary key of '${options.as}' table`);
+            throw new Error(`left join select missing primary key of '${opt.as}' table`);
           }
           // 没有结果跳过
           if (pkval === null) {
             return;
           }
         }
-        const _asPath = options.as.split('->');
-        // 有 join 结果再初始化 as 对象
-        if (propertyAt(instance, _asPath) === undefined) {
-          propertyAt(instance, _asPath, options.asList ? [] : {});
-        }
-        // 设置数据到 as 对象中
-        const joinInstance = createInstance(model, data);
-        if (options.asList) {
-          propertyAt(instance, _asPath).push(joinInstance);
-        } else {
-          propertyAt(instance, _asPath, joinInstance);
+        const _asPath = opt.as.split('->');
+        if (opt.asList) {
+          if (propertyAt(instance, _asPath) === undefined) {
+            propertyAt(instance, _asPath, []);
+          }
+          propertyAt(instance, _asPath).push(createInstance(model, data));
+        } else if (propertyAt(instance, _asPath) === undefined) {
+          propertyAt(instance, _asPath, createInstance(model, data));
         }
       }
-    });
+    }
     // 合并其他非表结构数据到主数据中
     if (typeof resutl[''] === 'object') {
       Object.entries(resutl['']).forEach(([key, value]) => {

@@ -107,7 +107,7 @@ export interface JoinOption<T extends Model> extends RelationOption<T> {
   asList?: boolean;
 }
 
-export type DefineJoinOption<T extends Model> = JoinOption<T> & { as?: never, asList?: never };
+export type DefineJoinOption<T extends Model> = JoinOption<T> & { as?: never };
 
 /**
  * 关系表多条查询设置

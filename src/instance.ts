@@ -10,7 +10,7 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
   if (!data) return null;
   const option = getModelOption(modelClass);
   const ins = new modelClass(data);
-  const pkval = data[option.pk] || data[PKNAME];
+  const pkval = PKNAME in data ? data[PKNAME] : data[option.pk];
   if (PKNAME in data) delete data[PKNAME];
   // 100000次性能对比: defineProperties[136ms] > for{defineProperty}[111.5ms] > assign[16ms]
   Object.assign(ins, { [PKVAL]: pkval }, data);

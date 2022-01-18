@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/koa": "^2.13.4",
+    "@types/mocha": "^9.0.0",
     "@types/node": "^12.20.41",
     "@types/sqlstring": "^2.3.0",
     "cross-env": "^7.0.3",
