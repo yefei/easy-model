@@ -20,7 +20,7 @@ export type ColumnAs = { [column: string]: string };
 /**
  * 表下面列名
  */
-export type TableColumnList = { [table: string]: string[] };
+export type TableColumnList = { [name: string]: string[] };
 
 /**
  * 数据库列名列表
@@ -102,7 +102,7 @@ export interface JoinOption<T extends Model> extends RelationOption<T> {
 
   /**
    * join 结果是否转为列表
-   * 在模型预定义中 join 类型会被强制为 false, joins 类型会被强制为 true
+   * 在模型预定义中 OneToMany 类型默认为 true
    */
   asList?: boolean;
 }
@@ -163,7 +163,7 @@ export interface ModelOption {
   /**
    * 模型名，默认表名，关联关系中不可重复
    */
-  // name?: string;
+  name?: string;
 
   /**
    * 表名，默认取自 name

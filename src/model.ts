@@ -2,14 +2,14 @@ import "reflect-metadata";
 import { snakeCase } from 'snake-case';
 import { DataValue, DataResult, ModelClass, ManyOption, DefineJoinOption, JoinOption, ModelOption, DefineManyOption } from './types';
 
-export const MODEL = Symbol('Model#model');
-export const OPTION = Symbol('Model#option');
-export const UPDATE = Symbol('Model#update');
-export const PKVAL = Symbol('Model#pkValue');
-export const DATA = Symbol('Model#data');
-export const JOIN = Symbol('Model#join');
-export const MANY = Symbol('Model#many');
-export const DATA_FIELDS = Symbol('Model#dataFields');
+export const MODEL = Symbol('model');
+export const OPTION = Symbol('option');
+export const UPDATE = Symbol('update');
+export const PKVAL = Symbol('pk');
+export const DATA = Symbol('data');
+export const JOIN = Symbol('join');
+export const MANY = Symbol('many');
+export const DATA_FIELDS = Symbol('dataFields');
 
 export interface Model {
   /**
@@ -48,9 +48,11 @@ export function model(option?: ModelOption) {
  */
 export function getModelOption<T extends Model>(modelClass: ModelClass<T>) {
   if (!modelClass[OPTION]) {
+    const name = snakeCase(modelClass.name);
     modelClass[OPTION] = {
       pk: 'id',
-      table: snakeCase(modelClass.name),
+      name,
+      table: name,
     };
   }
   return modelClass[OPTION];

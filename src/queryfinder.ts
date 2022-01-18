@@ -32,7 +32,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
       const modelOption = getModelOption(model);
       const finder = opt[FINDER];
       const refPath = opt.ref === this._option.pk ? [PKVAL] : opt.ref.split('.');
-      const asPath = (opt.as || modelOption.table).split('->');
+      const asPath = (opt.as || modelOption.name).split('->');
       const fetchManyResult = async (ins: T) => {
         const refValue = propertyAt(ins, refPath);
         if (refValue !== undefined) {
@@ -79,14 +79,14 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    */
   async get(...columns: ColumnList): Promise<T> {
     const resutl = <DataResult[] | DataResult> await this._fetchResult(true, columns);
-    if (!resutl) return null;
+    if (!resutl || resutl.length === 0) return null;
     if (Array.isArray(resutl)) {
       // JOIN asList 处理
       var instance = this._joinResultsMerge(resutl)[0];
     }
     else if (this._haveJoin) {
       // 单行 join 处理
-      var instance = createInstance(this._modelClass, resutl[this._option.table]);
+      var instance = createInstance(this._modelClass, resutl[this._option.name]);
       this._joinResultMerge(instance, resutl);
     } else {
       // 无 join 处理
@@ -125,7 +125,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
       return result.value;
     }
     if (defaultValue === undefined) {
-      throw new DoesNotExist(`The requested object '${this._option.table}' does not exist.`);
+      throw new DoesNotExist(`The requested object '${this._option.name}' does not exist.`);
     }
     return defaultValue;
   }

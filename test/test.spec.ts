@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as stringify from 'json-stable-stringify';
 import { Query, AB } from 'mysql-easy-query';
+import { PKNAME } from '../src/finder';
 import { MockConnection } from './mock_mysql';
 import {
   UserQuery,
@@ -40,7 +41,7 @@ describe('Model', function() {
     jsonEq(ins, { ...userData, age: 35 });
   });
 
-  conn.setMockData('SELECT `name` FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [{ name: 'yf' }]);
+  conn.setMockData('SELECT `name`, `user`.`id` AS `'+PKNAME+'` FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], [{ name: 'yf' }]);
   it('findByPk(...columns)', async function() {
     const ins = await UserQuery(query).findByPk(1, 'name');
     jsonEq(ins, { name: 'yf' });
@@ -129,7 +130,7 @@ describe('Model', function() {
     ] })
   });
 
-  conn.setMockData('SELECT `profile`.`id`, `profile`.`user_id`, `user`.`id`, `user->messages`.`id`, `user->messages`.`content`, `user->messages`.`user_id` FROM `profile` INNER JOIN `user` ON (`user`.`id` = `profile`.`user_id`) INNER JOIN `message` AS `user->messages` ON (`user->messages`.`user_id` = `profile`.`user_id`) WHERE `profile`.`user_id` = ?', [ 1 ], [
+  conn.setMockData('SELECT `profile`.`id`, `profile`.`user_id`, `user`.`id`, `user->messages`.`id`, `user->messages`.`content`, `user->messages`.`user_id`, `profile`.`id` AS `'+PKNAME+'`, `user`.`id` AS `'+PKNAME+'`, `user->messages`.`id` AS `'+PKNAME+'` FROM `profile` INNER JOIN `user` ON (`user`.`profile_id` = `profile`.`id`) INNER JOIN `message` AS `user->messages` ON (`user->messages`.`user_id` = `profile`.`user_id`) WHERE `profile`.`user_id` = ?', [ 1 ], [
     { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 1, content: 'msg1', user_id: 1 } },
     { profile: { id: 1, user_id: 1 }, user: { id: 1 }, 'user->messages': { id: 2, content: 'msg2', user_id: 1 } },
   ]);

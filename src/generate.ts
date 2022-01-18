@@ -132,6 +132,7 @@ export async function generate(query: Query, config: GenerateConfig) {
         '',
         `@model({`,
         `  pk: '${pk}',`,
+        `  name: '${name}',`,
         `  table: '${tableName}',`,
         `})`,
         `export default class ${className} extends ${className}Table {`,

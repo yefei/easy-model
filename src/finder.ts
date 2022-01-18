@@ -6,6 +6,7 @@ import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } 
 import { createInstance } from './instance';
 
 export const FINDER = Symbol('Finder');
+export const PKNAME = '__pk';
 
 /**
  * Finder
@@ -123,9 +124,9 @@ export class Finder<T extends Model> {
       // 在有 join 的情况下如果没有指定目标表则默认使用当前表
       builder.order(...defaultOrder.map(i => {
         if (i.startsWith('-')) {
-          return `-${this._option.table}.${i.slice(1)}`;
+          return `-${this._option.name}.${i.slice(1)}`;
         }
-        return `${this._option.table}.${i}`;
+        return `${this._option.name}.${i}`;
       }));
     }
   }
@@ -201,28 +202,25 @@ export class Finder<T extends Model> {
 
   protected _joinAppend<J extends Model>(option: JoinOption<J>) {
     const joinModel = option[MODEL];
-    const opt = getModelOption(joinModel);
+    const joinModelOption = getModelOption(joinModel);
     const defaultOption: JoinOption<J> = {
-      from: this._option.table,
-      // ref: this._option.pk,
-      // fk: option.asList ? this._option.table + '_' + this._option.pk : opt.table + '_' + opt.pk,
-      type: 'ManyToOne',
-      as: opt.table,
-      // asList: false,
+      from: this._option.name,
+      as: joinModelOption.name,
+      asList: false,
     };
-    option = Object.assign(defaultOption, option);
     if (option.type === 'OneToOne') {
-      if (!option.fk) option.fk = opt.pk;
+      defaultOption.fk = joinModelOption.pk;
+      defaultOption.ref = this._option.pk;
     }
-    else if (option.type === 'ManyToOne' || option.type === 'OneToMany') {
-      if (!option.fk) option.fk = opt.pk;
-      if (!option.ref) option.ref = this._option.table + '_' + this._option.pk;
-      if (option.type === 'OneToMany') {
-        if (typeof option.asList === 'undefined') option.asList = true;
-      }
+    else if (option.type === 'OneToMany') {
+      defaultOption.fk = joinModelOption.pk;
+      defaultOption.ref = this._option.name + '_' + this._option.pk;
+      defaultOption.asList = true;
+    } else { // 默认 ManyToOne
+      defaultOption.fk = joinModelOption.name + '_' + joinModelOption.pk;
+      defaultOption.ref = this._option.pk;
     }
-    if (!option.ref) option.ref = this._option.pk;
-    if (!option.fk) option.fk = opt.table + '_' + opt.pk;
+    option = Object.assign(defaultOption, option);
     this._checkAsName(option.as);
     this._join[option.as] = option;
   }
@@ -266,7 +264,7 @@ export class Finder<T extends Model> {
     }
     const defaultOption: ManyOption<M> = {
       [FINDER]: finder || new Finder(target),
-      fk: this._option.table + '_' + this._option.pk,
+      fk: this._option.name + '_' + this._option.pk,
       ref: this._option.pk,
       parallel: false,
     };
@@ -306,14 +304,14 @@ export class Finder<T extends Model> {
   }
 
   protected _joinResultsMerge(resutls: DataResult[]) {
-    const mainName = this._option.table;
+    const mainName = this._option.name;
     // 合并 join 结果到 instance 中
     const instanceMap = new Map<DataValue, T>();
     // 处理列表结果
     for (const row of resutls) {
       // 多条结果 join 结果组合
       const thisData = row[mainName];
-      const pkval = thisData[this._option.pk] || thisData['__pk'];
+      const pkval = thisData[this._option.pk] || thisData[PKNAME];
       if (pkval === undefined) {
         throw new Error(`join select missing primary key of '${mainName}' table`);
       }
@@ -332,8 +330,8 @@ export class Finder<T extends Model> {
       const data = resutl[options.as];
       if (data) {
         // 对于 LEFT JOIN 会产生所有列为 NULL 的结果问题，必须取得主键值
-        if (options.type.startsWith('LEFT')) {
-          const pkval = data[modelOption.pk] || data['__pk'];
+        if (options.optional) {
+          const pkval = data[modelOption.pk] || data[PKNAME];
           if (pkval === undefined) {
             throw new Error(`left join select missing primary key of '${options.as}' table`);
           }
@@ -364,10 +362,14 @@ export class Finder<T extends Model> {
     }
   }
 
+  protected _formBuilder(builder: Builder) {
+    builder.from(this._option.table, this._option.name !== this._option.table && this._option.name);
+  }
+
   protected _columnPrep(col: string | ColumnAs | TableColumnList) {
     if (typeof col === 'string') {
       if (col !== '*' && !col.includes('.')) {
-        return `${this._option.table}.${col}`;
+        return `${this._option.name}.${col}`;
       }
     }
     return col;
@@ -378,17 +380,17 @@ export class Finder<T extends Model> {
     const isJoinList = isJoin && Object.values(this._join).findIndex(i => i.asList) !== -1;
     if (columns.length > 0) {
       // 如果指定列检出则强制加上主键检出
-      columns.push({ [`${this._option.table}.${this._option.pk}`]: `__pk` });
+      columns.push({ [`${this._option.name}.${this._option.pk}`]: PKNAME });
       if (isJoin) {
         for (const j of Object.values(this._join)) {
           const jopt = getModelOption(j[MODEL]);
-          columns.push({ [`${j.as}.${jopt.pk}`]: `__pk` });
+          columns.push({ [`${j.as}.${jopt.pk}`]: PKNAME });
         }
       }
     }
     // 在有 join 的情况下如果没有指定目标表则默认使用当前表
     builder.select(...columns.map(i => isJoin ? this._columnPrep(i) : i));
-    builder.from(this._option.table);
+    this._formBuilder(builder);
     isJoin && this._joinBuilder(builder);
     this._whereBuilder(builder);
     this._groupBuilder(builder);
@@ -399,7 +401,7 @@ export class Finder<T extends Model> {
 
   protected _valueBuilder(builder: Builder, column: FieldType) {
     builder.select(typeof column === 'string' ? { [column]: 'value' } : { value: column });
-    builder.from(this._option.table);
+    this._formBuilder(builder);
     this._joinBuilder(builder);
     builder.nestTables(false);
     this._whereBuilder(builder);
@@ -410,7 +412,7 @@ export class Finder<T extends Model> {
 
   protected _countBuilder(builder: Builder, column: FieldType) {
     builder.count(column, 'c');
-    builder.from(this._option.table);
+    this._formBuilder(builder);
     this._joinBuilder(builder);
     this._whereBuilder(builder);
     if (this._group.length) {
@@ -422,7 +424,7 @@ export class Finder<T extends Model> {
 
   protected _existsBuilder(builder: Builder) {
     builder.select(builder.raw('1'));
-    builder.from(this._option.table);
+    this._formBuilder(builder);
     this._joinBuilder(builder);
     this._whereBuilder(builder);
     this._groupBuilder(builder);
