@@ -3,6 +3,7 @@ import { snakeCase } from 'snake-case';
 import { DataValue, DataResult, ModelClass, ManyOption, DefineJoinOption, JoinOption, ModelOption, DefineManyOption } from './types';
 
 export const MODEL = Symbol('model');
+export const MODEL_FILE = Symbol('modelFile');
 export const OPTION = Symbol('option');
 export const UPDATE = Symbol('update');
 export const PKVAL = Symbol('pk');
@@ -86,16 +87,20 @@ export function getDataMethods<T extends Model>(modelClass: ModelClass<T>): Prop
 /**
  * 设置模型的预定义 join 关系
  */
-export function join<T extends Model>(modelClass: ModelClass<T>, option?: DefineJoinOption<T>) {
+export function join<T extends Model>(modelClass: ModelClass<T> | string, option?: DefineJoinOption<T>) {
   return function (target: Object, propertyKey: string | symbol) {
     if (typeof propertyKey === 'symbol') {
       throw new Error('join property cannot be symbol');
     }
     const reflectMetadataType = Reflect.getMetadata('design:type', target, propertyKey);
     const ove: JoinOption<T> = {
-      [MODEL]: modelClass,
       as: propertyKey,
     };
+    if (typeof modelClass === 'string') {
+      ove[MODEL_FILE] = modelClass;
+    } else {
+      ove[MODEL] = modelClass;
+    }
     if (reflectMetadataType === Array) {
       ove.type = 'OneToMany';
     }
@@ -107,7 +112,12 @@ export function join<T extends Model>(modelClass: ModelClass<T>, option?: Define
  * 取得模型的预定义 join 关系
  */
 export function getModelJoinOption<T extends Model>(modelClass: ModelClass<T>, propertyKey: string): DefineJoinOption<T> {
-  return Reflect.getMetadata(JOIN, modelClass.prototype, propertyKey);
+  const option: DefineJoinOption<T> = Reflect.getMetadata(JOIN, modelClass.prototype, propertyKey);
+  if (option && option[MODEL_FILE]) {
+    option[MODEL] = require(option[MODEL_FILE]).default;
+    delete option[MODEL_FILE];
+  }
+  return option;
 }
 
 /**

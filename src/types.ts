@@ -1,6 +1,6 @@
 import { Builder, JsonWhere } from "sql-easy-builder";
 import { FINDER, Finder } from "./finder";
-import { MODEL, Model, OPTION } from "./model";
+import { MODEL, Model, MODEL_FILE, OPTION } from "./model";
 
 /**
  * 数据库结果类型
@@ -51,6 +51,12 @@ export interface RelationOption<J extends Model> {
    * 隐含属性
    */
   [MODEL]?: ModelClass<J>;
+
+  /**
+   * 模型类引入文件
+   * 用于解决 @join 预定义时模型互相依赖冲突问题
+   */
+  [MODEL_FILE]?: string;
 
   /**
    * 使用的外键，默认取 {J.name}_{J.pk}

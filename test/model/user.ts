@@ -8,7 +8,7 @@ import Profile from './profile';
   table: 'user',
 })
 export default class User extends UserTable {
-  @join(Profile, { type: 'OneToMany', asList: false })
+  @join(__dirname + '/profile', { type: 'OneToMany', asList: false })
   profile?: Profile;
 
   @join(Message)
