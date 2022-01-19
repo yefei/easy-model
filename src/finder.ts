@@ -12,7 +12,7 @@ export const PKNAME = '__pk';
  * Finder
  */
 export class Finder<T extends Model> {
-  protected _modelClass: ModelClass<T>;
+  readonly [MODEL]: ModelClass<T>;
   protected _option: ModelOption;
   protected _where: JsonWhere;
   protected _whereAndOr: [where: JsonWhere, prep?: string, after?: string][] = [];
@@ -25,7 +25,7 @@ export class Finder<T extends Model> {
   protected _having: JsonWhere = null;
 
   constructor(modelClass: ModelClass<T>) {
-    this._modelClass = modelClass;
+    this[MODEL] = modelClass;
     this._option = getModelOption(modelClass);
   }
 
@@ -34,7 +34,7 @@ export class Finder<T extends Model> {
    * @param finder 复制入的目标，默认为新实例
    */
   clone(finder?: Finder<T>) {
-    finder = finder || new Finder<T>(this._modelClass);
+    finder = finder || new Finder<T>(this[MODEL]);
     finder._where = simpleCopy(this._where);
     finder._whereAndOr = simpleCopy(this._whereAndOr);
     finder._limit = this._limit;
@@ -152,7 +152,7 @@ export class Finder<T extends Model> {
         let _options = this._join[joins[0]];
         // 是否需要加入第一级 join: a
         if (!_options) {
-          _options = this._getDefinedJoinOption(this._modelClass, joins[0]);
+          _options = this._getDefinedJoinOption(this[MODEL], joins[0]);
           this._joinAppend(_options);
         }
         // 依次加入后续 join: b->c
@@ -175,7 +175,7 @@ export class Finder<T extends Model> {
         return this;
       }
       // 一级预定义 join
-      joinOption = Object.assign({}, this._getDefinedJoinOption(this._modelClass, target), joinOption);
+      joinOption = Object.assign({}, this._getDefinedJoinOption(this[MODEL], target), joinOption);
     } else {
       if (!joinOption) {
         joinOption = {};
@@ -254,9 +254,9 @@ export class Finder<T extends Model> {
    */
   many<M extends Model>(target: string | ModelClass<M>, option?: ManyOption<M>) {
     if (typeof target === 'string') {
-      const opt = getModelManyOption(this._modelClass, target);
+      const opt = getModelManyOption(this[MODEL], target);
       if (!opt) {
-        throw new UndefinedRelationException(`${this._modelClass.name} many ${target}`);
+        throw new UndefinedRelationException(`${this[MODEL].name} many ${target}`);
       }
       option = Object.assign({}, option, opt);
       target = option[MODEL];
@@ -319,7 +319,7 @@ export class Finder<T extends Model> {
         throw new Error(`join select missing primary key of '${mainName}' table`);
       }
       if (!instanceMap.has(pkval)) {
-        instanceMap.set(pkval, createInstance(this._modelClass, thisData));
+        instanceMap.set(pkval, createInstance(this[MODEL], thisData));
       }
       this._joinResultMerge(instanceMap.get(pkval), row);
     }

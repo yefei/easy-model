@@ -18,7 +18,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
    * 复制当前 QueryFinder 实例
    */
   clone(): QueryFinder<T> {
-    const qfinder = new QueryFinder<T>(this._modelClass, this._query);
+    const qfinder = new QueryFinder<T>(this[MODEL], this._query);
     return <QueryFinder<T>> super.clone(qfinder);
   }
 
@@ -28,9 +28,9 @@ export class QueryFinder<T extends Model> extends Finder<T> {
 
   protected async _fetchManyResultMerge(instances: T | T[]): Promise<void> {
     for (const opt of Object.values(this._many)) {
-      const model = opt[MODEL];
-      const modelOption = getModelOption(model);
       const finder = opt[FINDER];
+      const model = finder[MODEL];
+      const modelOption = getModelOption(model);
       const refPath = opt.ref === this._option.pk ? [PKVAL] : opt.ref.split('.');
       const asPath = (opt.as || modelOption.name).split('->');
       const fetchManyResult = async (ins: T) => {
@@ -66,7 +66,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
     if (this._haveJoin) {
       var instances = this._joinResultsMerge(resutl);
     } else {
-      var instances = resutl.map(row => createInstance(this._modelClass, row));
+      var instances = resutl.map(row => createInstance(this[MODEL], row));
     }
     if (instances && instances.length > 0 && this._haveMany) {
       await this._fetchManyResultMerge(instances);
@@ -86,11 +86,11 @@ export class QueryFinder<T extends Model> extends Finder<T> {
     }
     else if (this._haveJoin) {
       // 单行 join 处理
-      var instance = createInstance(this._modelClass, resutl[this._option.name]);
+      var instance = createInstance(this[MODEL], resutl[this._option.name]);
       this._joinResultMerge(instance, resutl);
     } else {
       // 无 join 处理
-      var instance = createInstance(this._modelClass, resutl);
+      var instance = createInstance(this[MODEL], resutl);
     }
     if (instance && this._haveMany) {
       await this._fetchManyResultMerge(instance);

@@ -140,13 +140,13 @@ export interface ManyOption<T extends Model> extends RelationOption<T> {
 
   /**
    * 需要的结果列
-   * @default '*'
+   * 不指定则取得全部字段
    */
   columns?: ColumnList;
 
   /**
    * 是否使用并行查询
-   * 作用于 finder 中未指定 limit 时
+   * 作用于 finder 中指定 group/limit 时产生的 N+1 查询
    * @default false
    */
   parallel?: boolean;
