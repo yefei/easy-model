@@ -12,3 +12,5 @@ apidoc/
 .env
 test/_dist/
 dist/
+.nyc_output
+coverage/

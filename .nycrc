@@ -1,0 +1,25 @@
+{
+  "cache": false,
+  "check-coverage": false,
+  "extension": [
+    ".ts"
+  ],
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "coverage/**",
+    "node_modules/**",
+    "**/*.d.ts",
+    "**/*.spec.ts",
+    "test/mock_mysql.ts"
+  ],
+  "sourceMap": true,
+  "reporter": [
+    "html",
+    "text",
+    "text-summary"
+  ],
+  "all": true,
+  "instrument": true
+}
