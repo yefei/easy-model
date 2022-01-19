@@ -49,24 +49,35 @@ async function main() {
 
   // const joinRes = await UserQuery(query).find({ 'user.id': 1 }).join('profile').join('messages').many('messageList').get('profile.*');
   // console.log(joinRes);
+  // return;
+
+  // const profile = await ProfileQuery(query).find({ profile: { user_id: 1 } })
+  //   .join(User)
+  //   .join(Message, {
+  //     type: 'OneToMany',
+  //     fk: 'user_id',
+  //     ref: 'user_id',
+  //     as: 'user->messages',
+  //   })
+  //   .get({
+  //     profile: ['id', 'user_id'],
+  //     user: ['id'],
+  //     'user->messages': ['id', 'content', 'user_id'],
+  //   });
+  // console.log(profile);
+
+  // const messages = await MessageQuery(query).find().join(User).all();
+  // console.log(messages);
 
   const profile = await ProfileQuery(query).find({ profile: { user_id: 1 } })
-    .join(User)
-    .join(Message, {
-      type: 'OneToMany',
-      fk: 'user_id',
-      ref: 'user_id',
-      as: 'user->messages',
-    })
+    // .join('user')
+    .join('user->messages')
     .get({
       profile: ['id', 'user_id'],
       user: ['id'],
       'user->messages': ['id', 'content', 'user_id'],
     });
   console.log(profile);
-
-  // const messages = await MessageQuery(query).find().join(User).all();
-  // console.log(messages);
 
   return;
 

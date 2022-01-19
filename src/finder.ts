@@ -166,8 +166,9 @@ export class Finder<T extends Model> {
               as: _as,
               from: preJoinOptions.as,
             });
-            _options = Object.assign({}, this._getDefinedJoinOption(preJoinOptions[MODEL], cur), curJoinOptions);
-            this._joinAppend(_options);
+            const preMainModel = preJoinOptions[MODEL];
+            _options = Object.assign({}, this._getDefinedJoinOption(preMainModel, cur), curJoinOptions);
+            this._joinAppend(_options, getModelOption(preMainModel));
           }
           return _as;
         });
@@ -200,25 +201,27 @@ export class Finder<T extends Model> {
     return opt;
   }
 
-  protected _joinAppend<J extends Model>(option: JoinOption<J>) {
+  protected _joinAppend<J extends Model>(option: JoinOption<J>, mainModelOption?: ModelOption) {
+    mainModelOption = mainModelOption || this._option;
     const joinModel = option[MODEL];
     const joinModelOption = getModelOption(joinModel);
     const defaultOption: JoinOption<J> = {
-      from: this._option.name,
+      from: mainModelOption.name,
       as: joinModelOption.name,
       asList: false,
     };
     if (option.type === 'OneToOne') {
       defaultOption.fk = joinModelOption.pk;
-      defaultOption.ref = this._option.pk;
+      defaultOption.ref = mainModelOption.pk;
     }
     else if (option.type === 'OneToMany') {
       defaultOption.fk = joinModelOption.pk;
-      defaultOption.ref = this._option.name + '_' + this._option.pk;
+      defaultOption.ref = mainModelOption.name + '_' + mainModelOption.pk;
       defaultOption.asList = true;
+      defaultOption.optional = true;
     } else { // 默认 ManyToOne
       defaultOption.fk = joinModelOption.name + '_' + joinModelOption.pk;
-      defaultOption.ref = this._option.pk;
+      defaultOption.ref = mainModelOption.pk;
     }
     option = Object.assign(defaultOption, option);
     this._checkAsName(option.as);

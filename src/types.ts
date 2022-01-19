@@ -87,6 +87,7 @@ export interface JoinOption<T extends Model> extends RelationOption<T> {
   /**
    * 决定 join 的方式
    * 如果 optional=true 则使用 LEFT，否则默认使用 INNER
+   * OneToMany 模型下默认为 true
    */
   optional?: boolean;
 
@@ -161,7 +162,7 @@ export interface ModelOption {
   pk?: string;
 
   /**
-   * 模型名，默认表名，关联关系中不可重复
+   * 模型名，默认取 class name，输出查询时的名称
    */
   name?: string;
 
