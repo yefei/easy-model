@@ -1,4 +1,4 @@
-import { Builder, JsonWhere } from "sql-easy-builder";
+import { AttrBuilder, Builder, JsonWhere } from "sql-easy-builder";
 import { FINDER, Finder } from "./finder";
 import { MODEL, Model, MODEL_FILE, OPTION } from "./model";
 
@@ -14,18 +14,15 @@ export type DataResult = { [column: string]: DataValue };
 
 /**
  * 数据库列别名
+ * string/AttrBuilder 别名
+ * string[] 表下面列名
  */
-export type ColumnAs = { [column: string]: string };
-
-/**
- * 表下面列名
- */
-export type TableColumnList = { [name: string]: string[] };
+export type ColumnAs = { [column: string]: string | string[] | AttrBuilder };
 
 /**
  * 数据库列名列表
  */
-export type ColumnList = (string | TableColumnList | ColumnAs)[];
+export type ColumnList = (string | ColumnAs)[];
 
 /**
  * Model class

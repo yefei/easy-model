@@ -12,6 +12,7 @@ import {
   Profile,
   NonautopkQuery,
   Message,
+  Queries,
 } from './model';
 
 const conn = new MockConnection();
@@ -217,81 +218,78 @@ describe('Model', function() {
     jsonEq(user, { name: 'testname' });
     eq(user[PKVAL], 3);
   });
-  return;
 
-  it('save()', async function() {
-    const user = await UserQuery(query).find().get('name', 'id');
-    user.name = "222";
-    await user.save();
+  conn.setMockData('UPDATE `user` SET `name` = ? WHERE `id` = ?', [ 'newname', 3 ], { affectedRows: 1 })
+  it('repo.save(ins)', async function() {
+    const user = await UserQuery(query).find().get('name');
+    user.name = "newname";
+    const rows = await UserQuery(query).save(user);
+    eq(rows, 1);
   });
 
-  it('update(coloums)', async function() {
-    const user = await UserQuery(query).find().get('name', 'id');
-    await user.update({ name: '123456' });
-    assert(user.name, "123456");
+  it('repo.update(coloums)', async function() {
+    const repo = UserQuery(query);
+    const user = await repo.find().get('name');
+    const rows = await repo.update(user, { name: 'newname' });
+    eq(rows, 1);
+    jsonEq(user, { name: 'newname' });
   });
 
-  it('delete', async function() {
-    const ins = await UserQuery(query).find({ id }).delete();
+  conn.setMockData('DELETE FROM `user` WHERE `id` = ?', [ 1 ], { affectedRows: 1 });
+  it('finder.delete()', async function() {
+    const ins = await UserQuery(query).find({ id: 1 }).delete();
     eq(ins, 1);
   });
 
-  it('instance.delete', async function() {
-    const id = await UserQuery(query).create({ name: 'instance.delete', age: 11 });
-    const user = await UserQuery(query).findByPk(id);
-    const c = await user.delete();
+  it('repo.delete()', async function() {
+    const repo = UserQuery(query);
+    const user = await UserQuery(query).findByPk(1);
+    const c = await repo.delete(user);
     eq(c, 1);
   });
 
-  it('finder.clone', async function() {
+  conn.setMockData('SELECT * FROM `user` WHERE `id` = ? OR ( `id` = ? ) LIMIT ?', [ 1, 2, 1 ], { id: 1 })
+  it('finder.clone()', async function() {
     const userFinder = UserQuery(query).find({ id: 1 });
-    userFinder.clone().whereAnd({ id: 2 });
-    await userFinder.get();
+    const f2 = userFinder.clone().whereOr({ id: 2 });
+    jsonEq(await f2.get(), { id: 1 });
+    jsonEq(await userFinder.get(), { ...userData, age: 35 });
   });
 
-  it('finder.whereAnd', async function() {
-    const userFinder = UserQuery(query).find();
-    userFinder.whereAnd({ id: 2 }).whereOr({ name: 111 });
-    await userFinder.get();
-  });
-
-  it('createAndGet', async function() {
+  it('repo.createAndGet', async function() {
     const ins = await UserQuery(query).createAndGet({ name: 'yf', age: 11 });
-    eq({ name: ins.name, age: ins.age }, { name: 'yf', age: 11 });
+    jsonEq(ins, { ...userData, age: 35 });
   });
 
+  conn.setMockData('SELECT `name` AS `value` FROM `user` WHERE `id` = ? LIMIT ?', [ 1, 1 ], { value: 'yf' });
   it('value', async function() {
-    const id = await UserQuery(query).create({ name: 'yfvalue' });
-    const name = await UserQuery(query).find({ id }).value('name', null);
-    eq(name, 'yfvalue');
+    const name = await UserQuery(query).find({ id: 1 }).value('name', null);
+    eq(name, 'yf');
   });
 
+  conn.setMockData('SELECT `user`.`name` AS `value` FROM `message` INNER JOIN `user` ON (`user`.`id` = `message`.`user_id`) WHERE `user`.`id` = ? ORDER BY `message`.`id` DESC LIMIT ?', [ 1, 1 ], { value: 'yfvalue2' });
   it('value.join', async function() {
-    const id = await UserQuery(query).create({ name: 'yfvalue2' });
-    await MessageQuery(query).create({ user_id: id, content: 'test' });
-    const name = await MessageQuery(query).find({ 'user.id': id }).join(User).value('user.name');
+    const name = await MessageQuery(query).find({ 'user.id': 1 }).join(User).value('user.name');
     eq(name, 'yfvalue2');
   });
 
+  conn.setMockData('SELECT 1 FROM `message` INNER JOIN `user` ON (`user`.`id` = `message`.`user_id`) WHERE `user`.`id` = ? LIMIT ?', [ 1, 1 ], { 1: 1 });
   it('join.exists', async function() {
-    const id = await UserQuery(query).create({ name: 'join.exists' });
-    await MessageQuery(query).create({ user_id: id, content: 'test' });
-    const exists = await MessageQuery(query).find({ 'user.id': id }).join(User).exists();
+    const exists = await MessageQuery(query).find({ 'user.id': 1 }).join(User).exists();
     eq(exists, true);
   });
 
+  conn.setMockData('SELECT * FROM `message` INNER JOIN `user` ON (`user`.`id` > ?) WHERE `user`.`id` = ? ORDER BY `message`.`id` DESC LIMIT ?', [ 0, 1, 1 ], {
+    message: { id: 1, content: 'msg1' }, user: userData
+  });
   it('join.where', async function() {
-    const id = await UserQuery(query).create({ name: 'join.where' });
-    await MessageQuery(query).create({ user_id: id, content: 'test' });
-    const m = await MessageQuery(query).find({ 'user.id': id }).join(User, { where: { 'user.id': { $gt: 0 } } }).get();
-    eq(m.user.id, id);
+    const m = await MessageQuery(query).find({ 'user.id': 1 }).join(User, { where: { 'user.id': { $gt: 0 } } }).get();
+    jsonEq(m, { id: 1, content: 'msg1', user: { ...userData, age: 35 } });
   });
 
-  it('join.get empty list', async function() {
-    const m = await MessageQuery(query).find({ 'user.id': 1 }).join(User, { where: { 'user.id': 99999 } }).get();
-    eq(m, null);
-  });
-
+  conn.setMockData('SELECT `user`.*, COUNT(`message`.`id`) AS `messageCount`, `user`.`id` AS `__pk`, `message`.`id` AS `__pk` FROM `user` INNER JOIN `message` ON (`message`.`user_id` = `user`.`id`) GROUP BY `user`.`id` HAVING `messageCount` > ?', [ 2 ], [
+    { user: { ...userData, __pk: 1 }, '': { messageCount: 3 }, message: { __pk: 1 } },
+  ]);
   it('group', async function() {
     const m = await UserQuery(query).find().join(Message, {
       fk: 'id',
@@ -300,71 +298,55 @@ describe('Model', function() {
     .group('user.id')
     .having({ messageCount: { $gt: 2 } })
     .all({ user: ['*'], messageCount: AB.count('message.id') });
-    for (const i of m) {
-      eq(typeof i.messageCount, 'number');
-      eq(typeof i.id, 'number');
-    }
+    jsonEq(m, [{ ...userData, age: 35, messageCount: 3, message: {} }]);
   });
 
-  it('group(AB)', async function() {
-    const m = await MessageQuery(query).find()
-    .group('user_id')
-    .all('user_id', { messageCount: AB.count('user_id') });
-    for (const i of m) {
-      eq(typeof i.messageCount, 'number');
-      eq(typeof i.user_id, 'number');
-    }
+  conn.setMockData('SELECT * FROM `message` LEFT JOIN `user` ON (`user`.`id` = `message`.`user_id` AND `user`.`name` = ?) INNER JOIN `profile` AS `user->profile` ON (`user->profile`.`user_id` = `message`.`user_id`) WHERE `message`.`id` = ? ORDER BY `message`.`id` DESC LIMIT ?', [ 'notexists', 1, 1 ], {
+    message: { id: 1, content: 'msg1' }, 'user->profile': profileData, user: { id: null, name: null, birthday: null }
   });
-
-  it('NonAutoPk', async function() {
-    const maxId = await NonautopkQuery(query).find().value(AB.max('id'), 0);
-    eq(typeof maxId, 'number');
-    const ins = await NonautopkQuery(query).create({ id: maxId + 1, name: 'test' });
-    eq(maxId + 1, ins);
-  });
-
   it('left left of null', async function() {
     const data = await MessageQuery(query)
       .find({ message: { id:  1 } })
-      .join(User, { type: 'LEFT', where: { name: 'not exists' } })
-      .join(Profile, { from: 'user', type: 'LEFT', as: 'user->profile', ref: 'user_id', fk: 'id' })
+      .join(User, { where: { 'user.name': 'notexists' }, optional: true })
+      .join(Profile, { as: 'user->profile', ref: 'user_id', fk: 'user_id' })
       .get();
-    eq(typeof data.user, 'undefined');
+    jsonEq(data, { id: 1, content: 'msg1' });
   });
 
-  it('left left of not null', async function() {
-    const data = await MessageQuery(query)
-      .find({ message: { id:  1 } })
-      .join(User, { type: 'LEFT', where: { name: 'not exists' } })
-      .join(Profile, { type: 'LEFT', as: 'user->profile', ref: 'user_id', fk: 'id' })
-      .get();
-    eq(typeof data.user.profile, 'object');
-  });
-
+  conn.setMockData('SELECT COUNT(*) AS `c` FROM `message`', null, { c: 100 });
+  conn.setMockData('SELECT * FROM `message` ORDER BY `id` DESC LIMIT ? OFFSET ?', [ 10, 0 ], [
+    { id: 3, content: 'msg3' },
+    { id: 2, content: 'msg2' },
+    { id: 1, content: 'msg1' },
+  ]);
   it('page', async function() {
     const data = await MessageQuery(query).find().page({ limit: 10, order: ['-id'] });
-    assert.ok(data.total > 0);
-    assert.ok(data.list.length > 0);
-
-    const data2 = await MessageQuery(query).find().page({ limit: 10, order: '-id' });
-    assert.ok(data2.total == data.total);
-    assert.ok(data2.list.length == data.list.length);
+    jsonEq(data, { limit: 10, offset: 0, order: [ '-id' ], total: 100, list: [
+      { id: 3, content: 'msg3'}, { id: 2, content: 'msg2'}, { id: 1, content: 'msg1'}
+    ] });
   });
 
-  it('join.get(id, user.name)', async function() {
-    const data = await MessageQuery(query).find()
-      .join(User).get('id', 'content', 'user.name');
-    eq(typeof data.id, 'number');
-    eq(typeof data.user.name, 'string');
+  it('Model@data set', async function() {
+    const repo = UserQuery(query);
+    const user = await repo.findByPk(1);
+    user.age = 100;
+    conn.setMockData('UPDATE `user` SET `birthday` = ? WHERE `id` = ?', [ user.birthday, 1 ], { affectedRows: 1 });
+    const num = await repo.save(user);
+    eq(num, 1);
   });
 
-  it('join.order(X)', async function() {
-    const data = await MessageQuery(query).find()
-      .join(User).group('user.id').order('-x').get('id', 'content', 'user.name', 'user.id', AB.SQL`COUNT({user.id}) AS {x}`);
+  conn.setMockData('SELECT COUNT(*) AS `c` FROM `profile`', null, { c: 200 });
+  conn.setMockData('SELECT COUNT(*) AS `c` FROM `nonautopk`', null, { c: 300 });
+  it('Queries', async function() {
+    const qs = new Queries(query);
+    const c1 = await qs.user.count();
+    eq(c1, 1);
+    const c2 = await qs.message.count();
+    eq(c2, 100);
+    const c3 = await qs.profile.count();
+    eq(c3, 200);
+    const c4 = await qs.nonautopk.count();
+    eq(c4, 300);
   });
 
-  it('default order', async function() {
-    await MessageQuery(query).find().all();
-    await MessageQuery(query).find().join(User).all();
-  });
 });

@@ -11,9 +11,9 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
   const option = getModelOption(modelClass);
   const ins = new modelClass(data);
   const pkval = PKNAME in data ? data[PKNAME] : data[option.pk];
-  if (PKNAME in data) delete data[PKNAME];
   // 100000次性能对比: defineProperties[136ms] > for{defineProperty}[111.5ms] > assign[16ms]
   Object.assign(ins, { [PKVAL]: pkval }, data);
+  if (PKNAME in data) delete ins[PKNAME];
 
   // 数据方法字段
   const dataMethods = getDataMethods(modelClass);
@@ -38,7 +38,7 @@ export function createInstance<T extends Model>(modelClass: ModelClass<T>, data?
           dataMethods[prop].set.call(proxy, value);
         }
         // 如果修改的是数据库值并且不是子实例对象
-        else if (prop in data && !Reflect.has(target[prop], PKVAL)) {
+        else if (prop in data && (typeof target[prop] !== 'object' || !Reflect.has(target[prop], PKVAL))) {
           if (!target[UPDATE]) target[UPDATE] = new Set();
           target[UPDATE].add(prop);
         }

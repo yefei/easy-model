@@ -1,5 +1,5 @@
 import * as mysql from 'mysql2';
-import { PoolQuery } from 'mysql-easy-query';
+import { AB, PoolQuery } from 'mysql-easy-query';
 import { Query } from '../src/types';
 import { UserQuery, User, ProfileQuery, Message, MessageQuery } from './model';
 import { createInstance } from '../src/instance';
@@ -69,15 +69,24 @@ async function main() {
   // const messages = await MessageQuery(query).find().join(User).all();
   // console.log(messages);
 
-  const profile = await ProfileQuery(query).find({ profile: { user_id: 1 } })
-    // .join('user')
-    .join('user->messages')
-    .get({
-      profile: ['id', 'user_id'],
-      user: ['id'],
-      'user->messages': ['id', 'content', 'user_id'],
-    });
-  console.log(profile);
+  // const profile = await ProfileQuery(query).find({ profile: { user_id: 1 } })
+  //   // .join('user')
+  //   .join('user->messages')
+  //   .get({
+  //     profile: ['id', 'user_id'],
+  //     user: ['id'],
+  //     'user->messages': ['id', 'content', 'user_id'],
+  //   });
+  // console.log(profile);
+
+  const m = await UserQuery(query).find().join(Message, {
+    fk: 'id',
+    ref: 'user_id',
+  })
+  .group('user.id')
+  .having({ messageCount: { $gt: 2 } })
+  .all({ user: ['*'], messageCount: AB.count('message.id') });
+  console.log(m);
 
   return;
 

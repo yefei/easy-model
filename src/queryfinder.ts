@@ -105,6 +105,7 @@ export class QueryFinder<T extends Model> extends Finder<T> {
     const total = await this.count();
     let list: T[] = [];
     if (total > 0) {
+      offset = offset || 0;
       this.limit(limit, offset);
       if (order) {
         this.order(...(typeof order === 'string' ? [order] : order));

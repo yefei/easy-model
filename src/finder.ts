@@ -1,7 +1,7 @@
 import { propertyAt, simpleCopy } from './utils';
 import { UndefinedRelationException } from './excepts';
 import { Builder, FieldType, JsonWhere } from 'sql-easy-builder';
-import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption, TableColumnList } from './types';
+import { ColumnAs, ColumnList, DataResult, DataValue, JoinOption, ManyOption, ModelClass, ModelOption } from './types';
 import { getModelJoinOption, getModelManyOption, getModelOption, MODEL, Model } from './model';
 import { createInstance } from './instance';
 
@@ -366,7 +366,7 @@ export class Finder<T extends Model> {
     builder.from(this._option.table, this._option.name !== this._option.table && this._option.name);
   }
 
-  protected _columnPrep(col: string | ColumnAs | TableColumnList) {
+  protected _columnPrep(col: string | ColumnAs) {
     if (typeof col === 'string') {
       if (col !== '*' && !col.includes('.')) {
         return `${this._option.name}.${col}`;
@@ -407,7 +407,7 @@ export class Finder<T extends Model> {
     this._whereBuilder(builder);
     this._groupBuilder(builder);
     this._orderBuilder(builder);
-    builder.one(this._limit || 0);
+    builder.one(this._offset ? this._offset : undefined);
   }
 
   protected _countBuilder(builder: Builder, column: FieldType) {
