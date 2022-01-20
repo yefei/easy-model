@@ -3,6 +3,12 @@ import { Builder, JsonWhere } from 'sql-easy-builder';
 import { Model, UPDATE, PKVAL, getModelOption } from './model';
 import { QueryFinder } from './queryfinder';
 
+function assertPk<T extends Model>(ins: T) {
+  if (!ins || ins[PKVAL] === undefined) {
+    throw new Error('Missing primary key value.');
+  }
+}
+
 export class Repository<T extends Model> {
   protected _modelClass: ModelClass<T>;
   protected _option: ModelOption;
@@ -41,6 +47,7 @@ export class Repository<T extends Model> {
    * 通过主键取得一条数据
    */
   findByPk(pk: DataValue, ...columns: ColumnList) {
+    console.log('aaa', this._option.pk);
     return this.find({ [this._option.pk]: pk }).get(...columns);
   }
 
@@ -83,9 +90,7 @@ export class Repository<T extends Model> {
    * @returns 更新条数
    */
   async save(ins: T): Promise<number> {
-    if (ins[PKVAL] === undefined) {
-      throw new Error('Missing primary key value.');
-    }
+    assertPk(ins);
     const updateSet = ins[UPDATE];
     if (!updateSet || updateSet.size === 0) return;
     const data: DataResult = {};
@@ -105,9 +110,7 @@ export class Repository<T extends Model> {
    * @returns 删除条数
    */
   delete(ins: T): Promise<number> {
-    if (ins[PKVAL] === undefined) {
-      throw new Error('Missing primary key value.');
-    }
+    assertPk(ins);
     return this.find({ [this._option.pk]: ins[PKVAL] }).delete();
   }
 

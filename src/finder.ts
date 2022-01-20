@@ -432,15 +432,19 @@ export class Finder<T extends Model> {
     builder.nestTables(false);
   }
 
+  protected _tableAs(builder: Builder) {
+    return this._option.table !== this._option.name ? builder.as(this._option.table, this._option.name) : this._option.table;
+  }
+
   protected _updateBuilder(builder: Builder, data: DataResult) {
-    builder.update(this._option.table, data);
+    builder.update(this._tableAs(builder), data);
     this._whereBuilder(builder);
     this._orderBuilder(builder);
     this._limitBuilder(builder);
   }
 
   protected _deleteBuilder(builder: Builder) {
-    builder.delete(this._option.table);
+    builder.delete(this._tableAs(builder));
     this._whereBuilder(builder);
     this._orderBuilder(builder);
     this._limitBuilder(builder);

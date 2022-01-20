@@ -349,4 +349,15 @@ describe('Model', function() {
     eq(c4, 300);
   });
 
+  conn.setMockData('SELECT * FROM `nonautopk` WHERE `id` = ? LIMIT ?', [ 1, 1 ], {  });
+  it('assertPk', async function() {
+    const r = await NonautopkQuery(query).findByPk(1);
+    try {
+      await NonautopkQuery(query).save(r);
+      assert.ok(false, 'error');
+    } catch (e) {
+      eq(e.message, 'Missing primary key value.');
+    }
+  });
+
 });
