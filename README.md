@@ -5,26 +5,22 @@ Easy ORM, easy query. easy typing! Auto generate typescript declaration.
 ## install
 
 ```
-npm i zenorm mysql2
+npm i zenorm mysql-easy-query
 ```
 
 ## example
 
 ```sql
-CREATE DATABASE `test`;
-
 CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `age` int(11) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `profile` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
+  `id` int(11) NOT NULL,
   `edu` varchar(255) DEFAULT NULL,
   `work` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -35,74 +31,111 @@ CREATE TABLE `message` (
   `user_id` int(11) NOT NULL,
   `content` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `fk1` (`user_id`),
-  CONSTRAINT `fk1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+  KEY `fk1` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
-```js
-import mysql from 'mysql2';
+```ts
+import * as mysql from 'mysql2';
+import { model, join, many, data, createRepositoryQuery } from 'zenorm';
 import { Query } from 'mysql-easy-query';
-import { model } from 'zenorm';
 
-const conn = mysql.createConnection({
+class User {
+  @join(Profile, { type: 'OneToOne' })
+  profile?: Profile;
+
+  @join(Message)
+  messages?: Message[];
+
+  @many(Message)
+  messageList?: Message[];
+
+  @data
+  get age() {
+    return this.birthday ? (new Date().getFullYear()) - this.birthday.getFullYear() : undefined;
+  }
+
+  set age(v) {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - v, 1, 1);
+    this.birthday = date;
+  }
+}
+
+class Profile {
+  @join(User)
+  user?: User;
+}
+
+@model({
+  pk: 'id',
+  table: 'message',
+  order: ['-id'],
+})
+class Message {
+}
+
+const pool = mysql.createPool({
   host: '127.0.0.1',
   user: 'root',
   database: 'test',
+  password: '',
 });
 
-const query = new Query(conn);
+const query = <Query> new PoolQuery(pool);
 
-const User = model('user');
+const UserQuery = createRepositoryQuery(User);
+const MessageQuery = createRepositoryQuery(Message);
+
+const userRepo = UserQuery(query);
 
 // create
-const id = await User(query).create({ name: 'yf', age: 11 });
+const id = await userRepo.create({ name: 'yf' });
 console.log(id); // 1
 
 // get and update
-const user = await User(query).findByPk(id);
+const user = await userRepo.findByPk(id);
 user.name = 'yefei';
-user.save();
+user.age = 20;
+await userRepo.save(user);
 
 // find all
-const users = await User(query).find().all();
+const users = await userRepo.find().all();
 
 // find limit
-const users = await User(query).find().limit(10).all();
+const users = await userRepo.find().limit(10).all();
 
 // find by where
-const users = await User(query).find({ age: 11 }).all();
+const users = await userRepo.find({ name: { $like: `%y%` } }).all();
 
 // get all count
-const count = await User(query).count();
+const count = await userRepo.count();
 
-// get count by where
-const count = await User(query).count({ age: 11 });
-// or
-const count = await User(query).find({ age: 11 }).count();
+// page
+const page = await userRepo.page();
 
 // exists
-const exists = await User(query).exists({ id: 1 });
+const exists = await userRepo.exists({ id: 1 });
 // or
-const exists = await User(query).find({ age: 11 }).exists();
+const exists = await userRepo.find({ name: 'yf' }).exists();
 
 // update
-const updatedCount = await User(query).find({ id: 1 }).update({ name: 'yf', age: 11 });
+const updatedCount = await userRepo.find({ id: 1 }).update({ name: 'yf', age: 11 });
 
 // delete
-const user = await User(query).findByPk(1);
-const deletedCount = await user.delete();
+const user = await userRepo.findByPk(1);
+const deletedCount = await userRepo.delete(user);
+
+await userRepo.find({ name: 'aaa' }).delete();
 
 // transaction
-query.transaction(() => {
-  const user = await User(query).findByPk(1);
-  await user.delete();
+await query.transaction(async tx => {
+  await UserQuery(tx).find().update({ some: 'data' });
+  await MessageQuery(tx).find().update({ some: 'data' });
 });
 
 // join
-const Profile = model('profile');
-const Message = model('message');
-const user = await Message(query).find().join(User).all();
+const user = await MessageQuery(query).find().join(User).all();
 /*
 [
   {
@@ -117,34 +150,20 @@ const user = await Message(query).find().join(User).all();
 */
 
 // join 2
-const user = await User(query).find().join(Message, {
-  fk: 'id',
-  ref: 'user_id',
-  asList: true,
-})
-.join(Profile, {
-  fk: 'id',
-  ref: 'user_id',
-})
-.get();
+const user = await userRepo.find().join("messages").get();
 /*
 {
   id: 1,
   name: "yf",
-  message: [
+  messages: [
     { id: 1, content: "message content" },
     { id: 2, content: "message content" },
-  ],
-  profile: {
-    id: 1,
-    work: "work"
-  }
+  ]
 }
 */
 
 // many
-const query = new PoolQuery(pool);
-const userList = await User(query).find().many(Message, { parallel: true }).all();
+const userList = await userRepo.find().many("messageList").all();
 ```
 
 ## auto generate

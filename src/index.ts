@@ -1,6 +1,7 @@
 import { Model } from './model';
 import { Repository } from './repository';
 import { ModelClass, Query } from './types';
+export * from 'sql-easy-builder';
 export * from './types';
 export * from './model';
 export * from './repository';
