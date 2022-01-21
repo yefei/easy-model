@@ -362,7 +362,7 @@ describe('Model', function() {
   });
 
   it('simpleCopy', async function() {
-    const obj: any = { a: 1, b: null, c: undefined, d: { d1: true, d2: [4,5,6] } };
+    const obj: any = { a: 1, b: null, c: undefined, d: { d1: true, d2: [4,5,6] }, obj: new Date() };
     const obj2 = simpleCopy(obj);
     jsonEq(obj, obj2);
   });

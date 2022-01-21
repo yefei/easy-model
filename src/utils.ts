@@ -27,7 +27,7 @@ export function propertyAt(obj: { [key: number | string | symbol]: any }, path: 
  */
 export function simpleCopy<T>(aObject: T): T {
   const isArray = Array.isArray(aObject);
-  const isObject = !isArray && aObject && typeof aObject === 'object';
+  const isObject = !isArray && aObject && typeof aObject === 'object' && Object.getPrototypeOf(aObject) === null;
   if (isArray || isObject) {
     const bObject: any = isArray ? [] : {};
     for (const k in aObject) {
