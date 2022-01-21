@@ -132,14 +132,14 @@ export async function generate(query: Query, config: GenerateConfig) {
         '',
         `@model({`,
         `  pk: '${pk}',`,
-        `  name: '${name}',`,
+        name != tableName ? `  name: '${name}',` : null,
         `  table: '${tableName}',`,
         `})`,
         `export default class ${className} extends ${className}Table {`,
         `}`,
         '',
       ];
-      await fs.writeFile(outputFilename, ts.join('\n'));
+      await fs.writeFile(outputFilename, ts.filter(i => i !== null).join('\n'));
     }
 
     models.push([name, className]);
