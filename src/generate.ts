@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { pascalCase } from 'pascal-case';
 import { snakeCase } from 'snake-case';
+import { camelCase } from 'camel-case';
 import { DataResult, Query } from './types';
 
 const zenormName = process.env.ZENORM_NAME || 'zenorm';
@@ -159,7 +160,7 @@ export async function generate(query: Query, config: GenerateConfig) {
     `export class Queries {`,
     `  _query: Query;`,
     `  constructor(query: Query) { this._query = query; }`,
-    ...models.map(([name, className]) => `  get ${name}() { return ${className}Query(this._query); }`),
+    ...models.map(([name, className]) => `  get ${camelCase(name)}() { return ${className}Query(this._query); }`),
     `}`,
     '',
     'export {',

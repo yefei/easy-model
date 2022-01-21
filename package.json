@@ -1,7 +1,7 @@
 {
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "repository": "https://github.com/yefei/easy-model",
@@ -46,6 +46,7 @@
     "typescript": "^4.5.4"
   },
   "dependencies": {
+    "camel-case": "^4.1.2",
     "pascal-case": "^3.1.2",
     "reflect-metadata": "^0.1.13",
     "snake-case": "^3.0.4"
