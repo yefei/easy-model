@@ -5,7 +5,7 @@
  * @param path 对象属性
  * @param value 是否需要赋值，如果不指定则为取值
  */
-export function propertyAt(obj: { [key: number | string | symbol]: any }, path: (string | symbol)[], value?: any) {
+export function propertyAt(obj: { [key: PropertyKey]: any }, path: (string | symbol)[], value?: any) {
   let ref = obj;
   for (const p of path.slice(0, -1)) {
     if (ref[p] === undefined) {

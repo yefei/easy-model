@@ -32,7 +32,7 @@ export interface Model {
   /**
    * 数据字段
    */
-  [colunm: string | symbol | number]: any;
+  [colunm: PropertyKey]: any;
 }
 
 /**
