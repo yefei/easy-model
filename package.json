@@ -1,7 +1,7 @@
 {
   "name": "zenorm",
   "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "repository": "https://github.com/yefei/easy-model",
