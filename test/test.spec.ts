@@ -3,6 +3,7 @@ import * as stringify from 'json-stable-stringify';
 import { Query, AB } from 'mysql-easy-query';
 import { PKVAL } from '../src';
 import { PKNAME } from '../src/finder';
+import { simpleCopy } from '../src/utils';
 import { MockConnection } from './mock_mysql';
 import {
   UserQuery,
@@ -358,6 +359,12 @@ describe('Model', function() {
     } catch (e) {
       eq(e.message, 'Missing primary key value.');
     }
+  });
+
+  it('simpleCopy', async function() {
+    const obj: any = { a: 1, b: null, c: undefined, d: { d1: true, d2: [4,5,6] } };
+    const obj2 = simpleCopy(obj);
+    jsonEq(obj, obj2);
   });
 
 });
